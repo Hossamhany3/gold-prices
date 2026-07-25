@@ -412,7 +412,7 @@ function renderCurrency(el){
 
 function renderCharts(el){
     if(!R)return;
-    const r=rates();
+    const r=rates(),P=PREMIUMS;
     el.innerHTML=`
     <h2 style="color:var(--gold);margin-bottom:16px">📊 رسوم بيانية</h2>
     <div class="cc"><h3>مقارنة المعادن (عالمي vs مصري)</h3><div class="cw"><canvas id="cmpC"></canvas></div></div>
@@ -421,7 +421,7 @@ function renderCharts(el){
     <div class="cc"><h3>📈 تطور الذهب (8 ايام)</h3><div class="cw"><canvas id="histC"></canvas></div></div>`;
     setTimeout(()=>{
         if(CH.cmp)CH.cmp.destroy();
-        const e24=r.gold.grE*1.022,e21=e24*.875;
+        const e24=r.gold.grE*(1+P.g24/100),e21=e24*.875;
         CH.cmp=new Chart(document.getElementById('cmpC'),{type:'bar',data:{labels:['اونصة ($)','جرام 24K (ج.م)','جرام 21K (ج.م)'],datasets:[{label:'عالمي',data:[r.gold.oz,r.gold.grE,r.gold.grE*.875],backgroundColor:'rgba(0,188,212,.6)',borderColor:'#00bcd4',borderWidth:1},{label:'مصري',data:[r.gold.oz,e24,e21],backgroundColor:'rgba(255,215,0,.6)',borderColor:'#ffd700',borderWidth:1}]},options:cOpts()});
 
         if(CH.prem)CH.prem.destroy();
@@ -437,16 +437,13 @@ function renderCharts(el){
 function drawHistChart(){
     if(!R)return;
     const r=rates();
-    const labels=[],goldData=[],silverData=[];
+    const entries=[];
     for(const[d,usd]of Object.entries(HIST)){
         if(!usd||!usd.xau||!usd.xag)continue;
-        labels.push(d);
-        goldData.push(+(1/usd.xau).toFixed(2));
-        silverData.push(+(1/usd.xag).toFixed(2));
+        entries.push({d,gold:+(1/usd.xau).toFixed(2),silver:+(1/usd.xag).toFixed(2)});
     }
-    labels.sort();
-    goldData.sort();
-    silverData.sort();
+    entries.sort((a,b)=>a.d.localeCompare(b.d));
+    const labels=entries.map(e=>e.d),goldData=entries.map(e=>e.gold),silverData=entries.map(e=>e.silver);
     if(labels.length<2){
         const oz=r.gold.oz;
         labels.unshift('منذ 8 ايام');goldData.unshift(+(oz*.97).toFixed(2));silverData.unshift(+(r.silver.oz*.97).toFixed(2));
@@ -466,21 +463,21 @@ function renderDateCompare(el){
         <div><label>الي تاريخ</label><input type="date" id="dateTo" value="${today}" max="${today}"></div>
         <button class="rbtn" onclick="compareDates()">🔍 مقارنة</button>
         <div class="date-presets">
-            <button class="preset-btn" onclick="setPreset(7)">7 ايام</button>
-            <button class="preset-btn" onclick="setPreset(30)">30 يوم</button>
-            <button class="preset-btn" onclick="setPreset(90)">3 شهور</button>
-            <button class="preset-btn" onclick="setPreset(365)">سنة</button>
+            <button class="preset-btn" onclick="setPreset(7,this)">7 ايام</button>
+            <button class="preset-btn" onclick="setPreset(30,this)">30 يوم</button>
+            <button class="preset-btn" onclick="setPreset(90,this)">3 شهور</button>
+            <button class="preset-btn" onclick="setPreset(365,this)">سنة</button>
         </div>
     </div>
     <div id="cmpResult"><div class="cmp-loading">اختر التواريخ واضغط مقارنة</div></div>`;
 }
 
-function setPreset(days){
+function setPreset(days,btn){
     const to=new Date();const from=new Date(Date.now()-days*86400000);
     document.getElementById('dateFrom').value=from.toISOString().split('T')[0];
     document.getElementById('dateTo').value=to.toISOString().split('T')[0];
     document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('on'));
-    event.target.classList.add('on');
+    btn.classList.add('on');
 }
 
 async function compareDates(){
@@ -657,7 +654,7 @@ function calcGold(){
             <div style="color:var(--red);font-weight:bold;font-size:1.1rem">ج.م ${fmt(valBuy)}</div>
         </div>
     </div>
-    <div style="color:var(--txt3);font-size:.85rem">قيمة عالمية国际市场: $${fmt(intl)}</div></div>`;
+    <div style="color:var(--txt3);font-size:.85rem">قيمة عالمية: $${fmt(intl)}</div></div>`;
 }
 
 function calcSilver(){
@@ -840,17 +837,20 @@ function renderFallbackNews(){
 function exportCSV(){
     if(!R)return;
     const r=rates();if(!r)return;
-    const P=PREMIUMS;
-    const e24=r.gold.grE*(1+P.g24/100),e21=e24*21/24;
-    let csv='البند,القيمة بالدولار,القيمة بالجنيه\n';
-    csv+=`ذهب اونصة,$${fmt(r.gold.oz)},ج.م ${fmt(r.gold.ozE)}\n`;
-    csv+=`ذهب جرام,$${fmt(r.gold.gr)},ج.م ${fmt(r.gold.grE)}\n`;
-    csv+=`ذهب 24K,,ج.م ${fmt(e24)}\n`;
-    csv+=`ذهب 21K,,ج.م ${fmt(e21)}\n`;
-    csv+=`فضة اونصة,$${fmt(r.silver.oz)},ج.م ${fmt(r.silver.ozE)}\n`;
-    csv+=`فضة جرام,$${fmt(r.silver.gr)},ج.م ${fmt(r.silver.grE)}\n`;
-    csv+=`دولار,,ج.م ${fmt(R.egp)}\n`;
-    csv+=`نسبة الذهب/الفضة,${fmt(r.ratio,1)}:1,\n`;
+    const P=PREMIUMS,SP=SPREAD;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    const e24s=r.gold.grE*(1+P.g24/100)*(1+halfG/100),e24b=r.gold.grE*(1+P.g24/100)*(1-halfG/100);
+    const e21s=e24s*21/24,e21b=e24b*21/24;
+    const s999s=r.silver.grE*(1+P.s999/100)*(1+halfS/100),s999b=r.silver.grE*(1+P.s999/100)*(1-halfS/100);
+    let csv='البند,سعر البيع بالجنيه,سعر الشراء بالجنيه,سعر عالمي بالدولار\n';
+    csv+=`ذهب اونصة,ج.م ${fmt(r.gold.ozE*(1+P.g24/100)*(1+halfG/100))},ج.م ${fmt(r.gold.ozE*(1+P.g24/100)*(1-halfG/100))},$${fmt(r.gold.oz)}\n`;
+    csv+=`ذهب جرام عالمي,ج.م ${fmt(r.gold.grE)},ج.م ${fmt(r.gold.grE)},$${fmt(r.gold.gr)}\n`;
+    csv+=`ذهب 24K,ج.م ${fmt(e24s,0)},ج.م ${fmt(e24b,0)},\n`;
+    csv+=`ذهب 21K,ج.م ${fmt(e21s,0)},ج.م ${fmt(e21b,0)},\n`;
+    csv+=`فضة 999,ج.م ${fmt(s999s)},ج.م ${fmt(s999b)},\n`;
+    csv+=`فضة اونصة,ج.م ${fmt(r.silver.ozE*(1+P.s999/100)*(1+halfS/100))},ج.م ${fmt(r.silver.ozE*(1+P.s999/100)*(1-halfS/100))},$${fmt(r.silver.oz)}\n`;
+    csv+=`دولار,,ج.م ${fmt(R.egp)},\n`;
+    csv+=`نسبة الذهب/الفضة,${fmt(r.ratio,1)}:1,,\n`;
     const BOM='\uFEFF';
     const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8'});
     const a=document.createElement('a');
@@ -917,12 +917,15 @@ function showToast(msg){
 function sharePrice(){
     if(!R)return;
     const r=rates();if(!r)return;
-    const P=PREMIUMS;
-    const e24=r.gold.grE*(1+P.g24/100),e21=e24*21/24;
+    const P=PREMIUMS,SP=SPREAD;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    const e24s=r.gold.grE*(1+P.g24/100)*(1+halfG/100),e24b=r.gold.grE*(1+P.g24/100)*(1-halfG/100);
+    const e21s=e24s*21/24,e21b=e24b*21/24;
+    const s999s=r.silver.grE*(1+P.s999/100)*(1+halfS/100),s999b=r.silver.grE*(1+P.s999/100)*(1-halfS/100);
     const text='📊 اسعار الذهب والعملات — '+new Date().toLocaleDateString('ar-EG')+
-        '\n🥇 ذهب 24K: '+fmt(e24)+' ج.م'+
-        '\n🥇 ذهب 21K: '+fmt(e21)+' ج.م'+
-        '\n🥈 فضة 999: '+fmt(r.silver.grE*(1+P.s999/100))+' ج.م'+
+        '\n🥇 ذهب 24K: بيع '+fmt(e24s,0)+' ج.م | شراء '+fmt(e24b,0)+' ج.م'+
+        '\n🥇 ذهب 21K: بيع '+fmt(e21s,0)+' ج.م | شراء '+fmt(e21b,0)+' ج.م'+
+        '\n🥈 فضة 999: بيع '+fmt(s999s)+' ج.م | شراء '+fmt(s999b)+' ج.م'+
         '\n💵 دولار: '+fmt(R.egp)+' ج.م'+
         '\n🔗 '+window.location.href;
     if(navigator.share){
