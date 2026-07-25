@@ -511,7 +511,7 @@ async function compareDates(){
         });
         await Promise.all(promises);
         const data=results;
-        const P=PREMIUMS;
+        const P=PREMIUMS,SP=SPREAD;
 
         function extract(usd){
             if(!usd||!usd.xau||!usd.xag||!usd.egp)return null;
