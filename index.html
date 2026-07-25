@@ -191,7 +191,7 @@ const CURS={
 
 let R=null,HIST={},CH={},activeTab='gold',alertId=0;
 
-function fmt(n,d=2){return n!=null&&!isNaN(n)?n.toLocaleString('ar-EG',{maximumFractionDigits:d,minimumFractionDigits:d}):'---'}
+function fmt(n,d=2){return n!=null&&!isNaN(n)?n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'---'}
 function ci(v){return v>0?'▲':v<0?'▼':'—'}
 function cc(v){return v>0?'cu':v<0?'cd':'cn'}
 function getAlerts(){try{return JSON.parse(localStorage.getItem('goldAlerts')||'[]')}catch(e){return[]}}
