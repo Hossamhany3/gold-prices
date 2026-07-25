@@ -173,6 +173,7 @@ const TABS=[
 ];
 
 const PREMIUMS={g24:2.2,s999:9.5,s925:8.0};
+const SPREAD={gold:1.5,silver:2.0};
 const CURS={
     EUR:{n:'اليورو',f:'🇪🇺',bp:1.7},
     GBP:{n:'الجنيه الاسترليني',f:'🇬🇧',bp:1.3},
@@ -281,16 +282,21 @@ function render(){
 }
 
 function renderGold(el){
-    const r=rates(),P=PREMIUMS;
-    const e24=r.gold.grE*(1+P.g24/100),e22=e24*22/24,e21=e24*21/24,e18=e24*18/24;
-    const eOz=r.gold.ozE*(1+P.g24/100),ePound=e21*8+80;
+    const r=rates(),P=PREMIUMS,SP=SPREAD;
+    const halfSP=SP.gold/2;
+    const e24s=r.gold.grE*(1+P.g24/100)*(1+halfSP/100),e24b=r.gold.grE*(1+P.g24/100)*(1-halfSP/100);
+    const e22s=e24s*22/24,e22b=e24b*22/24;
+    const e21s=e24s*21/24,e21b=e24b*21/24;
+    const e18s=e24s*18/24,e18b=e24b*18/24;
+    const eOzs=r.gold.ozE*(1+P.g24/100)*(1+halfSP/100),eOzb=r.gold.ozE*(1+P.g24/100)*(1-halfSP/100);
+    const ePounds=e21s*8+80,ePoundb=e21b*8+80;
     el.innerHTML=`
     <div class="ctrl"><h2 style="color:var(--gold)">مقارنة اسعار الذهب</h2><button class="rbtn" onclick="fetchData()">🔄 تحديث</button></div>
     <div class="sc">
         <div class="scd"><div class="sl">سعر الاونصة (عالمي)</div><div class="sv pint">$${fmt(r.gold.oz)}</div><div class="sl">≈ ج.م ${fmt(r.gold.ozE)}</div></div>
         <div class="scd"><div class="sl">الجرام عالمي (EGP)</div><div class="sv pint">ج.م ${fmt(r.gold.grE)}</div></div>
-        <div class="scd"><div class="sl">24K مصر</div><div class="sv pegp">ج.م ${fmt(e24)}</div><div class="sl">+${P.g24}% علاوة</div></div>
-        <div class="scd"><div class="sl">21K مصر</div><div class="sv pegp">ج.م ${fmt(e21)}</div></div>
+        <div class="scd"><div class="sl">21K مصر (بيع)</div><div class="sv" style="color:#00ff88">ج.م ${fmt(e21s)}</div></div>
+        <div class="scd"><div class="sl">21K مصر (شراء)</div><div class="sv" style="color:#ff4444">ج.م ${fmt(e21b)}</div></div>
     </div>
     <div class="grid">
         <div class="card"><div class="ch"><span class="ct2">🌍 الاسعار العالمية</span><span class="badge bg">عالمي</span></div>
@@ -298,34 +304,53 @@ function renderGold(el){
             <div class="pr"><span class="pl">الاونصة (EGP)</span><span class="pv pegp">ج.م ${fmt(r.gold.ozE)}</span></div>
             <div class="pr"><span class="pl">الجرام (USD)</span><span class="pv pint">$${fmt(r.gold.gr)}</span></div>
             <div class="pr"><span class="pl">الجرام (EGP)</span><span class="pv pegp">ج.م ${fmt(r.gold.grE)}</span></div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px"><span style="color:var(--txt4)">Spread عالمي</span><span style="color:var(--orange)">${SP.gold}%</span></div>
+            </div>
         </div>
         <div class="card"><div class="ch"><span class="ct2">🇪🇬 الاسعار المصرية</span><span class="badge bg">مصر</span></div>
-            <div class="pr"><span class="pl">24 قيرط / جرام</span><span class="pv pegp">ج.م ${fmt(e24)}</span></div>
-            <div class="pr"><span class="pl">22 قيرط / جرام</span><span class="pv pegp">ج.م ${fmt(e22)}</span></div>
-            <div class="pr"><span class="pl">21 قيرط / جرام</span><span class="pv pegp">ج.م ${fmt(e21)}</span></div>
-            <div class="pr"><span class="pl">18 قيرط / جرام</span><span class="pv pegp">ج.م ${fmt(e18)}</span></div>
-            <div class="pr"><span class="pl">جنيه ذهب (8g 21K)</span><span class="pv pegp">ج.م ${fmt(ePound)}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+                <div style="color:var(--green);font-weight:bold;font-size:.8rem">🟢 سعر البيع</div>
+                <div style="color:var(--red);font-weight:bold;font-size:.8rem">🔴 سعر الشراء</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+                <div class="pr" style="border:none"><span class="pl">24 قيرط</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e24s,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">24 قيرط</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e24b,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">22 قيرط</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e22s,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">22 قيرط</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e22b,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">21 قيرط</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e21s,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">21 قيرط</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e21b,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">18 قيرط</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e18s,0)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">18 قيرط</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e18b,0)}</span></div>
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <div class="pr"><span class="pl">جنيه ذهب بيع</span><span class="pv" style="color:var(--green)">ج.م ${fmt(ePounds,0)}</span></div>
+                <div class="pr"><span class="pl">جنيه ذهب شراء</span><span class="pv" style="color:var(--red)">ج.م ${fmt(ePoundb,0)}</span></div>
+                <div class="pr"><span class="pl">فرق بيع/شراء</span><span class="pv cn">ج.م ${fmt(ePounds-ePoundb,0)}</span></div>
+            </div>
         </div>
         <div class="card"><div class="ch"><span class="ct2">⚖️ المقارنة</span><span class="badge bg">تحليل</span></div>
             <div class="pr"><span class="pl">الجرام عالمي</span><span class="pv pint">ج.م ${fmt(r.gold.grE)}</span></div>
-            <div class="pr"><span class="pl">الجرام مصري 24K</span><span class="pv pegp">ج.م ${fmt(e24)}</span></div>
-            <div class="pr"><span class="pl">فرق السعر</span><span class="pv cu">+ج.م ${fmt(e24-r.gold.grE)}</span></div>
-            <div class="pr"><span class="pl">نسبة العلاوة</span><span class="pv cu">+${P.g24}%</span></div>
+            <div class="pr"><span class="pl">الجرام مصري 24K (بيع)</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e24s,0)}</span></div>
+            <div class="pr"><span class="pl">الجرام مصري 24K (شراء)</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e24b,0)}</span></div>
+            <div class="pr"><span class="pl">فرق البيع عن العالمي</span><span class="pv cu">+ج.م ${fmt(e24s-r.gold.grE)}</span></div>
             <div class="pr"><span class="pl">نسبة الذهب/الفضة</span><span class="pv cn">${fmt(r.ratio,1)}:1</span></div>
         </div>
     </div>`;
 }
 
 function renderSilver(el){
-    const r=rates(),P=PREMIUMS;
-    const e999=r.silver.grE*(1+P.s999/100),e925=e999*.925;
+    const r=rates(),P=PREMIUMS,SP=SPREAD;
+    const halfSP=SP.silver/2;
+    const e999s=r.silver.grE*(1+P.s999/100)*(1+halfSP/100),e999b=r.silver.grE*(1+P.s999/100)*(1-halfSP/100);
+    const e925s=e999s*.925,e925b=e999b*.925;
     el.innerHTML=`
     <div class="ctrl"><h2 style="color:var(--silver)">مقارنة اسعار الفضة</h2><button class="rbtn" onclick="fetchData()">🔄 تحديث</button></div>
     <div class="sc">
         <div class="scd"><div class="sl">سعر الاونصة (عالمي)</div><div class="sv" style="color:var(--silver)">$${fmt(r.silver.oz)}</div><div class="sl">≈ ج.م ${fmt(r.silver.ozE)}</div></div>
         <div class="scd"><div class="sl">الجرام عالمي</div><div class="sv" style="color:var(--silver)">ج.م ${fmt(r.silver.grE)}</div></div>
-        <div class="scd"><div class="sl">999 مصر</div><div class="sv pegp">ج.م ${fmt(e999)}</div><div class="sl">+${P.s999}% علاوة</div></div>
-        <div class="scd"><div class="sl">نسبة الذهب/الفضة</div><div class="sv cn">${fmt(r.ratio,1)}:1</div></div>
+        <div class="scd"><div class="sl">999 مصر (بيع)</div><div class="sv" style="color:var(--green)">ج.م ${fmt(e999s)}</div></div>
+        <div class="scd"><div class="sl">999 مصر (شراء)</div><div class="sv" style="color:var(--red)">ج.م ${fmt(e999b)}</div></div>
     </div>
     <div class="grid">
         <div class="card"><div class="ch"><span class="ct2">🌍 العالمية</span><span class="badge bs">عالمي</span></div>
@@ -333,17 +358,32 @@ function renderSilver(el){
             <div class="pr"><span class="pl">الاونصة EGP</span><span class="pv pegp">ج.م ${fmt(r.silver.ozE)}</span></div>
             <div class="pr"><span class="pl">الجرام USD</span><span class="pv" style="color:var(--silver)">$${fmt(r.silver.gr)}</span></div>
             <div class="pr"><span class="pl">الجرام EGP</span><span class="pv pegp">ج.م ${fmt(r.silver.grE)}</span></div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;font-size:.78rem"><span style="color:var(--txt4)">Spread عالمي</span><span style="color:var(--orange)">${SP.silver}%</span></div>
+            </div>
         </div>
         <div class="card"><div class="ch"><span class="ct2">🇪🇬 المصرية</span><span class="badge bs">مصر</span></div>
-            <div class="pr"><span class="pl">فضة 999 / جرام</span><span class="pv pegp">ج.م ${fmt(e999)}</span></div>
-            <div class="pr"><span class="pl">فضة 925 / جرام</span><span class="pv pegp">ج.م ${fmt(e925)}</span></div>
-            <div class="pr"><span class="pl">الاونصة</span><span class="pv pegp">ج.م ${fmt(e999*31.1035)}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+                <div style="color:var(--green);font-weight:bold;font-size:.8rem">🟢 سعر البيع</div>
+                <div style="color:var(--red);font-weight:bold;font-size:.8rem">🔴 سعر الشراء</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+                <div class="pr" style="border:none"><span class="pl">فضة 999</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e999s)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">فضة 999</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e999b)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">فضة 925</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e925s)}</span></div>
+                <div class="pr" style="border:none"><span class="pl">فضة 925</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e925b)}</span></div>
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <div class="pr"><span class="pl">الاونصة 999 بيع</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e999s*31.1035)}</span></div>
+                <div class="pr"><span class="pl">الاونصة 999 شراء</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e999b*31.1035)}</span></div>
+            </div>
         </div>
         <div class="card"><div class="ch"><span class="ct2">⚖️ المقارنة</span><span class="badge bs">تحليل</span></div>
             <div class="pr"><span class="pl">الجرام عالمي</span><span class="pv" style="color:var(--silver)">ج.م ${fmt(r.silver.grE)}</span></div>
-            <div class="pr"><span class="pl">الجرام مصري 999</span><span class="pv pegp">ج.م ${fmt(e999)}</span></div>
-            <div class="pr"><span class="pl">فرق</span><span class="pv cu">+ج.م ${fmt(e999-r.silver.grE)}</span></div>
-            <div class="pr"><span class="pl">نسبة العلاوة</span><span class="pv cu">+${P.s999}%</span></div>
+            <div class="pr"><span class="pl">المصري 999 (بيع)</span><span class="pv" style="color:var(--green)">ج.م ${fmt(e999s)}</span></div>
+            <div class="pr"><span class="pl">المصري 999 (شراء)</span><span class="pv" style="color:var(--red)">ج.م ${fmt(e999b)}</span></div>
+            <div class="pr"><span class="pl">فرق البيع عن العالمي</span><span class="pv cu">+ج.م ${fmt(e999s-r.silver.grE)}</span></div>
+            <div class="pr"><span class="pl">نسبة الذهب/الفضة</span><span class="pv cn">${fmt(r.ratio,1)}:1</span></div>
         </div>
     </div>`;
 }
@@ -477,9 +517,14 @@ async function compareDates(){
             if(!usd||!usd.xau||!usd.xag||!usd.egp)return null;
             const gold=1/usd.xau,silver=1/usd.xag,ue=usd.egp;
             const goldGr=gold/31.1035*ue;
+            const halfG=SP.gold/2,halfS=SP.silver/2;
             return{
-                goldOz:gold,goldGr:goldGr,gold24:goldGr*(1+P.g24/100),gold21:goldGr*(1+P.g24/100)*21/24,
-                silverOz:silver,silverGr:silver/31.1035*ue,silver999:silver/31.1035*ue*(1+P.s999/100),
+                goldOz:gold,goldGr:goldGr,
+                gold24s:goldGr*(1+P.g24/100)*(1+halfG/100),gold24b:goldGr*(1+P.g24/100)*(1-halfG/100),
+                gold21s:goldGr*(1+P.g24/100)*21/24*(1+halfG/100),gold21b:goldGr*(1+P.g24/100)*21/24*(1-halfG/100),
+                silverOz:silver,silverGr:silver/31.1035*ue,
+                silver999s:silver/31.1035*ue*(1+P.s999/100)*(1+halfS/100),
+                silver999b:silver/31.1035*ue*(1+P.s999/100)*(1-halfS/100),
                 usd:ue,eur:ue/usd.eur,gbp:ue/usd.gbp,sar:ue/usd.sar
             };
         }
@@ -508,9 +553,12 @@ async function compareDates(){
         <tr><th>البند</th><th>السعر (${d1})</th><th>السعر (${d2})</th><th>التغيير الكلي</th></tr>`;
         const summaryRows=[
             ['🥇 ذهب اونصة $',first.goldOz,last.goldOz],
-            ['🥇 ذهب 24K ج.م',first.gold24,last.gold24],
-            ['🥇 ذهب 21K ج.م',first.gold21,last.gold21],
-            ['🥈 فضة 999 ج.م',first.silver999,last.silver999],
+            ['🥇 ذهب 24K بيع ج.م',first.gold24s,last.gold24s],
+            ['🥇 ذهب 24K شراء ج.م',first.gold24b,last.gold24b],
+            ['🥇 ذهب 21K بيع ج.م',first.gold21s,last.gold21s],
+            ['🥇 ذهب 21K شراء ج.م',first.gold21b,last.gold21b],
+            ['🥈 فضة 999 بيع ج.م',first.silver999s,last.silver999s],
+            ['🥈 فضة 999 شراء ج.م',first.silver999b,last.silver999b],
             ['💵 دولار ج.م',first.usd,last.usd],
             ['🇪🇺 يورو ج.م',first.eur,last.eur],
             ['🇸🇦 ريال سعودي ج.م',first.sar,last.sar]
@@ -523,7 +571,7 @@ async function compareDates(){
 
         let daily=`<div class="cc"><h3>📅 تفاصيل يوم بيوم</h3>
         <div style="overflow-x:auto"><table class="cmp-table">
-        <tr><th>التاريخ</th><th>ذهب $/oz</th><th>ذهب 24K ج.م</th><th>ذهب 21K ج.م</th><th>فضة 999 ج.م</th><th>دولار ج.م</th></tr>`;
+        <tr><th>التاريخ</th><th>ذهب $/oz</th><th>24K بيع</th><th>24K شراء</th><th>21K بيع</th><th>21K شراء</th><th>فضة بيع</th><th>فضة شراء</th><th>دولار</th></tr>`;
         days.forEach((d,i)=>{
             const prev=i>0?days[i-1]:null;
             const dayChg=prev?pct(prev.goldOz,d.goldOz):0;
@@ -532,9 +580,12 @@ async function compareDates(){
             daily+=`<tr>
                 <td style="font-weight:bold">${d.date}</td>
                 <td>${fmt(d.goldOz)} <span class="${cls}" style="font-size:.7rem">${arrow}${prev?' '+Math.abs(dayChg).toFixed(2)+'%':''}</span></td>
-                <td>${fmt(d.gold24,0)}</td>
-                <td>${fmt(d.gold21,0)}</td>
-                <td>${fmt(d.silver999,0)}</td>
+                <td style="color:var(--green)">${fmt(d.gold24s,0)}</td>
+                <td style="color:var(--red)">${fmt(d.gold24b,0)}</td>
+                <td style="color:var(--green)">${fmt(d.gold21s,0)}</td>
+                <td style="color:var(--red)">${fmt(d.gold21b,0)}</td>
+                <td style="color:var(--green)">${fmt(d.silver999s,0)}</td>
+                <td style="color:var(--red)">${fmt(d.silver999b,0)}</td>
                 <td>${fmt(d.usd)}</td>
             </tr>`;
         });
@@ -558,9 +609,6 @@ async function compareDates(){
 }
 
 function renderCalculator(el){
-    const r=rates(),P=PREMIUMS;
-    const e24=r.gold.grE*(1+P.g24/100),e21=e24*21/24,e22=e24*22/24,e18=e24*18/24;
-    const s999=r.silver.grE*(1+P.s999/100);
     el.innerHTML=`
     <div class="ctrl"><h2 style="color:var(--gold)">🧮 حاسبة الذهب والفضة</h2></div>
     <div class="grid">
@@ -589,29 +637,51 @@ function renderCalculator(el){
 }
 
 function calcGold(){
-    const r=rates(),P=PREMIUMS;if(!r)return;
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r)return;
     const w=parseFloat(document.getElementById('goldW').value)||0;
     const c=parseInt(document.getElementById('goldC').value);
     const base=r.gold.grE*(1+P.g24/100);
-    const val=base*c/24*w;
+    const halfSP=SP.gold/2;
+    const valSell=base*c/24*w*(1+halfSP/100);
+    const valBuy=base*c/24*w*(1-halfSP/100);
     const intl=r.gold.gr*c/24*w;
     document.getElementById('goldCalcResult').innerHTML=`
-    <div class="calc-result"><div style="color:var(--txt3);margin-bottom:4px">${w} جرام × ${c} قيرط</div>
-    <div class="big">ج.م ${fmt(val)}</div>
-    <div style="color:var(--txt3);margin-top:6px;font-size:.85rem">القيمة国际市场: $${fmt(intl)}</div></div>`;
+    <div class="calc-result"><div style="color:var(--txt3);margin-bottom:6px">${w} جرام × ${c} قيرط</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;margin-bottom:8px">
+        <div style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:8px;padding:10px">
+            <div style="color:var(--green);font-size:.75rem;margin-bottom:4px">🟢 سعر البيع</div>
+            <div style="color:var(--green);font-weight:bold;font-size:1.1rem">ج.م ${fmt(valSell)}</div>
+        </div>
+        <div style="background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:8px;padding:10px">
+            <div style="color:var(--red);font-size:.75rem;margin-bottom:4px">🔴 سعر الشراء</div>
+            <div style="color:var(--red);font-weight:bold;font-size:1.1rem">ج.م ${fmt(valBuy)}</div>
+        </div>
+    </div>
+    <div style="color:var(--txt3);font-size:.85rem">قيمة عالمية国际市场: $${fmt(intl)}</div></div>`;
 }
 
 function calcSilver(){
-    const r=rates(),P=PREMIUMS;if(!r)return;
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r)return;
     const w=parseFloat(document.getElementById('silvW').value)||0;
     const c=parseInt(document.getElementById('silvC').value);
     const base=r.silver.grE*(1+P.s999/100);
-    const val=base*c/999*w;
+    const halfSP=SP.silver/2;
+    const valSell=base*c/999*w*(1+halfSP/100);
+    const valBuy=base*c/999*w*(1-halfSP/100);
     const intl=r.silver.gr*c/999*w;
     document.getElementById('silvCalcResult').innerHTML=`
-    <div class="calc-result"><div style="color:var(--txt3);margin-bottom:4px">${w} جرام × ${c} عيار</div>
-    <div class="big">ج.م ${fmt(val)}</div>
-    <div style="color:var(--txt3);margin-top:6px;font-size:.85rem">قيمة عالمية: $${fmt(intl)}</div></div>`;
+    <div class="calc-result"><div style="color:var(--txt3);margin-bottom:6px">${w} جرام × ${c} عيار</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;margin-bottom:8px">
+        <div style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:8px;padding:10px">
+            <div style="color:var(--green);font-size:.75rem;margin-bottom:4px">🟢 سعر البيع</div>
+            <div style="color:var(--green);font-weight:bold;font-size:1.1rem">ج.م ${fmt(valSell)}</div>
+        </div>
+        <div style="background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:8px;padding:10px">
+            <div style="color:var(--red);font-size:.75rem;margin-bottom:4px">🔴 سعر الشراء</div>
+            <div style="color:var(--red);font-weight:bold;font-size:1.1rem">ج.م ${fmt(valBuy)}</div>
+        </div>
+    </div>
+    <div style="color:var(--txt3);font-size:.85rem">قيمة عالمية: $${fmt(intl)}</div></div>`;
 }
 
 function renderAlerts(el){
@@ -619,7 +689,8 @@ function renderAlerts(el){
     el.innerHTML=`
     <div class="ctrl"><h2 style="color:var(--orange)">🔔 تنبيهات الاسعار</h2></div>
     <div class="card" style="margin-bottom:16px">
-        <h3 style="margin-bottom:12px;color:var(--gold)">اضافة تنبيه جديد</h3>
+        <h3 style="margin-bottom:4px;color:var(--gold)">اضافة تنبيه جديد</h3>
+        <div style="color:var(--txt4);font-size:.8rem;margin-bottom:10px">التنبيهات تعمل على اسعار البيع 🟢</div>
         <div class="alert-add">
             <select id="alertType"><option value="gold24">ذهب 24K</option><option value="gold21">ذهب 21K</option><option value="silver">فضة 999</option><option value="usd">الدولار</option><option value="eur">اليورو</option></select>
             <select id="alertDir"><option value="above">فوق</option><option value="below">تحت</option></select>
@@ -667,11 +738,12 @@ function delAlert(id){
 function checkAlerts(){
     if(!R)return;
     const r=rates();if(!r)return;
-    const P=PREMIUMS;
+    const P=PREMIUMS,SP=SPREAD;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
     const vals={
-        gold24:r.gold.grE*(1+P.g24/100),
-        gold21:r.gold.grE*(1+P.g24/100)*21/24,
-        silver:r.silver.grE*(1+P.s999/100),
+        gold24:r.gold.grE*(1+P.g24/100)*(1+halfG/100),
+        gold21:r.gold.grE*(1+P.g24/100)*21/24*(1+halfG/100),
+        silver:r.silver.grE*(1+P.s999/100)*(1+halfS/100),
         usd:R.egp,
         eur:R.egp/R.eur
     };
