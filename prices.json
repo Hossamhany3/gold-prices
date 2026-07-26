@@ -1,0 +1,15 @@
+{
+  "date": "2026-07-26",
+  "time": "15:16",
+  "source": "gold-price-today.com",
+  "prices": {
+    "g24": { "sell": 6870, "buy": 6825 },
+    "g21": { "sell": 6010, "buy": 5970 },
+    "g18": { "sell": 5150, "buy": 5115 },
+    "g14": { "sell": 4005, "buy": 3980 },
+    "pound": { "sell": 48080, "buy": 47760 },
+    "ozEgp": { "sell": 213635, "buy": 212215 },
+    "ozUsd": { "sell": 4055.92, "buy": 4055.92 },
+    "usd": { "sell": 52.67, "buy": 51.30 }
+  }
+}
