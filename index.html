@@ -259,38 +259,21 @@ async function fetchData(){
 
 async function fetchEgyptPrices(){
     try{
-        const proxy='https://api.allorigins.win/raw?url=';
-        const url=proxy+encodeURIComponent('https://gold-price-today.com/egypt/');
+        const url='prices.json?_='+Date.now();
         const r=await fetch(url,{cache:'no-store'});
-        const html=await r.text();
-        const prices={};
-        const rows=[
-            {key:'g24',label:'عيار 24'},
-            {key:'g22',label:'عيار 22'},
-            {key:'g21',label:'عيار 21'},
-            {key:'g18',label:'عيار 18'},
-            {key:'g14',label:'عيار 14'},
-            {key:'pound',label:'جنيه الذهب'},
-            {key:'ozEgp',label:'الأونصة بالجنيه'},
-            {key:'ozUsd',label:'الأونصة بالدولار'},
-            {key:'usd',label:'دولار الصاغة'}
-        ];
-        for(const row of rows){
-            const regex=new RegExp(row.label+'[^<]*</td>\\s*<td[^>]*>([\\d,.]+)</td>\\s*<td[^>]*>([\\d,.]+)</td>','i');
-            const m=html.match(regex);
-            if(m){
-                prices[row.key]={sell:parseFloat(m[1].replace(/,/g,'')),buy:parseFloat(m[2].replace(/,/g,''))};
-            }
-        }
-        if(Object.keys(prices).length>0){
-            EGYPT=prices;
-            EGYPT.time=new Date().toLocaleTimeString('ar-EG');
+        if(!r.ok)throw new Error('Not found');
+        const data=await r.json();
+        if(data&&data.prices&&Object.keys(data.prices).length>0){
+            EGYPT=data.prices;
+            EGYPT.time=data.time||'';
+            EGYPT.date=data.date||'';
+            EGYPT.source=data.source||'';
             const st=document.getElementById('egyptSt');
-            if(st)st.innerHTML='<span class="atag" style="background:rgba(0,188,212,.15);color:var(--cyan);border-color:var(--cyan)">🇪🇬 الصاغة</span>';
+            if(st)st.innerHTML='<span class="atag" style="background:rgba(0,188,212,.15);color:var(--cyan);border-color:var(--cyan)">🇪🇬 الصاغة — '+data.date+'</span>';
         }
     }catch(e){
         const st=document.getElementById('egyptSt');
-        if(st)st.innerHTML='<span class="atag" style="background:rgba(255,170,0,.15);color:var(--orange);border-color:var(--orange)">🇪🇬 الصاغة: غير متاح</span>';
+        if(st)st.innerHTML='<span class="atag" style="background:rgba(255,170,0,.15);color:var(--orange);border-color:var(--orange)">🇪🇬 اسعار الصاغة: غير متاحة</span>';
     }
 }
 
