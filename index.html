@@ -167,12 +167,14 @@
         <span id="egyptSt"></span>
         <span class="countdown" id="countdown"></span>
     </div>
+    <div id="pinnedBar" style="display:none;margin-top:10px;padding:6px 12px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:10px;font-size:.75rem;display:flex;gap:12px;flex-wrap:wrap;justify-content:center"></div>
 </div>
 <div class="topbar">
+    <input type="search" id="searchBox" placeholder="🔍 بحث عن صنف..." style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--txt);font-size:.78rem;width:140px;font-family:inherit" oninput="handleSearch(this.value)">
     <button class="top-btn" onclick="toggleTheme()" id="themeBtn">☀️ وضع مضيء</button>
     <button class="top-btn" onclick="toggleSound()" id="soundBtn">🔇 صوت التنبيهات</button>
     <button class="top-btn" onclick="sharePrice()">📤 مشاركة</button>
-    <button class="top-btn" onclick="window.print()">🖨️ طباعة</button>
+    <button class="top-btn" onclick="exportPDF()">📄 تقرير PDF</button>
     <button class="top-btn" onclick="exportCSV()">📥 تصدير CSV</button>
 </div>
 
@@ -190,6 +192,10 @@ const TABS=[
     {id:'charts',label:'رسوم بيانية',icon:'📊'},
     {id:'datecompare',label:'مقارنة التواريخ',icon:'📅'},
     {id:'calculator',label:'حاسبة الذهب',icon:'🧮'},
+    {id:'profit',label:'تحليل الربحية',icon:'💰'},
+    {id:'invest',label:'حاسبة الاستثمار',icon:'🏦'},
+    {id:'converter',label:'تحويل عملات',icon:'💱'},
+    {id:'calendar',label:'تقويم الأحداث',icon:'🗓️'},
     {id:'alerts',label:'تنبيهات الاسعار',icon:'🔔'},
     {id:'predictions',label:'توقعات السوق',icon:'🔮'},
     {id:'news',label:'اخبار السوق',icon:'📰'},
@@ -328,11 +334,16 @@ function render(){
         case'charts':renderCharts(el);break;
         case'datecompare':renderDateCompare(el);break;
         case'calculator':renderCalculator(el);break;
+        case'profit':renderProfit(el);break;
+        case'invest':renderInvest(el);break;
+        case'converter':renderConverter(el);break;
+        case'calendar':renderCalendar(el);break;
         case'alerts':renderAlerts(el);break;
         case'predictions':renderPred(el);break;
         case'news':renderNews(el);break;
         case'settings':renderSettings(el);break;
     }
+    updatePinnedBar();
 }
 
 function renderGold(el){
@@ -385,9 +396,9 @@ function renderGold(el){
     el.innerHTML=`
     <div class="ctrl"><h2 style="color:var(--gold)">مقارنة اسعار الذهب</h2><button class="rbtn" onclick="fetchData();fetchEgyptPrices()">🔄 تحديث</button></div>
     <div class="sc">
-        <div class="scd"><div class="sl">سعر الاونصة (عالمي)</div><div class="sv pint">$${fmt(r.gold.oz)}</div><div class="sl">≈ ج.م ${fmt(r.gold.ozE)}</div></div>
+        <div class="scd" style="cursor:pointer" onclick="togglePin('gold24')" title="تثبيت/إلغاء"><div class="sl">سعر الاونصة (عالمي)</div><div class="sv pint">$${fmt(r.gold.oz)}</div><div class="sl">≈ ج.م ${fmt(r.gold.ozE)} ${getPinned().includes('gold24')?'📌':''}</div></div>
         <div class="scd"><div class="sl">الجرام عالمي (EGP)</div><div class="sv pint">ج.م ${fmt(r.gold.grE)}</div></div>
-        <div class="scd"><div class="sl">21K مصر (بيع)</div><div class="sv" style="color:var(--green)">ج.م ${fmt(e21s)}</div></div>
+        <div class="scd" style="cursor:pointer" onclick="togglePin('gold21')" title="تثبيت/إلغاء"><div class="sl">21K مصر (بيع) ${getPinned().includes('gold21')?'📌':''}</div><div class="sv" style="color:var(--green)">ج.م ${fmt(e21s)}</div></div>
         <div class="scd"><div class="sl">21K مصر (شراء)</div><div class="sv" style="color:var(--red)">ج.م ${fmt(e21b)}</div></div>
     </div>
     <div class="grid">
@@ -428,7 +439,22 @@ function renderGold(el){
             <div class="pr"><span class="pl">فرق البيع عن العالمي</span><span class="pv cu">+ج.م ${fmt(e24s-r.gold.grE)}</span></div>
             <div class="pr"><span class="pl">نسبة الذهب/الفضة</span><span class="pv cn">${fmt(r.ratio,1)}:1</span></div>
         </div>${egyptSection}
-    </div>`;
+    </div>
+    <div class="cc"><h3>🪙 جدول مقارنة العيارات</h3>
+    <div style="overflow-x:auto"><table class="cmp-table">
+    <tr><th>العيار</th><th>النسبة</th><th>سعر البيع</th><th>سعر الشراء</th><th>الفرق</th><th>الاستخدام</th></tr>
+    <tr><td style="color:var(--gold);font-weight:bold">24 قيرط</td><td>99.9%</td><td style="color:var(--green)">${fmt(e24s,0)} ج.م</td><td style="color:var(--red)">${fmt(e24b,0)} ج.م</td><td>${fmt(e24s-e24b,0)} ج.م</td><td style="font-size:.72rem">استثمار، سبائك</td></tr>
+    <tr><td style="color:var(--gold);font-weight:bold">22 قيرط</td><td>91.7%</td><td style="color:var(--green)">${fmt(e22s,0)} ج.م</td><td style="color:var(--red)">${fmt(e22b,0)} ج.م</td><td>${fmt(e22s-e22b,0)} ج.م</td><td style="font-size:.72rem">مجوهرات (امريكا)</td></tr>
+    <tr><td style="color:var(--gold);font-weight:bold">21 قيرط</td><td>87.5%</td><td style="color:var(--green)">${fmt(e21s,0)} ج.م</td><td style="color:var(--red)">${fmt(e21b,0)} ج.م</td><td>${fmt(e21s-e21b,0)} ج.م</td><td style="font-size:.72rem">مجوهرات (مصر)</td></tr>
+    <tr><td style="color:var(--gold);font-weight:bold">18 قيرط</td><td>75.0%</td><td style="color:var(--green)">${fmt(e18s,0)} ج.م</td><td style="color:var(--red)">${fmt(e18b,0)} ج.م</td><td>${fmt(e18s-e18b,0)} ج.م</td><td style="font-size:.72rem">مجوهرات اقتصادي</td></tr>
+    </table></div></div>
+    <div class="cc"><h3>🪙 جنيه ذهب مقارن</h3>
+    <div style="overflow-x:auto"><table class="cmp-table">
+    <tr><th>النوع</th><th>الوزن</th><th>المحتوى</th><th>بيع</th><th>شراء</th></tr>
+    <tr><td style="font-weight:bold">جنيه ذهب 8 جرام</td><td>8 جرام</td><td>21 قيرط</td><td style="color:var(--green)">${fmt(ePounds,0)} ج.م</td><td style="color:var(--red)">${fmt(ePoundb,0)} ج.م</td></tr>
+    <tr><td style="font-weight:bold">ربع جنيه</td><td>2 جرام</td><td>21 قيرط</td><td style="color:var(--green)">${fmt(ePounds/4,0)} ج.م</td><td style="color:var(--red)">${fmt(ePoundb/4,0)} ج.م</td></tr>
+    <tr><td style="font-weight:bold">نصف جنيه</td><td>4 جرام</td><td>21 قيرط</td><td style="color:var(--green)">${fmt(ePounds/2,0)} ج.م</td><td style="color:var(--red)">${fmt(ePoundb/2,0)} ج.م</td></tr>
+    </table></div></div>`;
 }
 
 function renderSilver(el){
@@ -773,6 +799,346 @@ function calcSilver(){
     <div style="color:var(--txt3);font-size:.85rem">قيمة عالمية: $${fmt(intl)}</div></div>`;
 }
 
+function updatePinnedBar(){
+    const pins=getPinned();
+    const bar=document.getElementById('pinnedBar');
+    if(!bar)return;
+    if(!pins.length||!R){bar.style.display='none';return;}
+    bar.style.display='flex';
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r)return;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    const items={
+        gold24:{label:'24K',price:r.gold.grE*(1+P.g24/100)*(1+halfG/100),color:'var(--gold)'},
+        gold21:{label:'21K',price:r.gold.grE*(1+P.g24/100)*21/24*(1+halfG/100),color:'var(--gold)'},
+        silver:{label:'فضة',price:r.silver.grE*(1+P.s999/100)*(1+halfS/100),color:'var(--silver)'},
+        dollar:{label:'دولار',price:R.egp,color:'var(--cyan)'}
+    };
+    let h='';
+    pins.forEach(p=>{
+        const item=items[p];if(!item)return;
+        h+=`<span style="cursor:pointer" onclick="togglePin('${p}')" title="اضغط لإزالة"><strong style="color:${item.color}">${item.label}:</strong> <span style="color:var(--txt2)">${fmt(item.price,0)} ج.م</span> <span style="color:var(--txt4)">✕</span></span>`;
+    });
+    bar.innerHTML=h;
+}
+
+function handleSearch(q){
+    q=q.trim().toLowerCase();
+    if(!q){document.querySelectorAll('.card,.scd,.pcard').forEach(e=>e.style.display='');return;}
+    const terms={gold:['ذهب','دهب','24','22','21','18','14','اونصة','جرام'],silver:['فضة','999','925'],currency:['عملات','دولار','يورو','جنيه','ريال','درهم','دينار','ين','يوان','ليرة','كندي','استرالي','روبية','فرنك'],charts:['رسوم','بيانية','graph'],alerts:['تنبيهات'],predictions:['توقعات','سوق'],news:['اخبار'],settings:['اعدادات'],profit:['ربحية','ربح'],invest:['استثمار'],converter:['تحويل'],calendar:['تقويم','أحداث']};
+    const tabMap={gold:terms.gold,silver:terms.silver,currency:terms.currency,charts:terms.charts,alerts:terms.alerts,predictions:terms.predictions,news:terms.news,settings:terms.settings,profit:terms.profit,invest:terms.invest,converter:terms.converter,calendar:terms.calendar};
+    let found=null;
+    for(const[id,words]of Object.entries(tabMap)){if(words.some(w=>q.includes(w))){found=id;break;}}
+    if(found){
+        document.querySelectorAll('.tab').forEach((t,i)=>{if(TABS[i]&&TABS[i].id===found){t.click();}});
+        document.getElementById('searchBox').value='';
+    }
+}
+
+function getPinned(){try{return JSON.parse(localStorage.getItem('goldPinned')||'[]')}catch(e){return[]}}
+function togglePin(type){
+    let pins=getPinned();
+    if(pins.includes(type))pins=pins.filter(p=>p!==type);else pins.push(type);
+    localStorage.setItem('goldPinned',JSON.stringify(pins));
+    render();
+}
+
+function renderProfit(el){
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txt3)">⏳ جاري تحميل البيانات...</div>';return;}
+    const halfG=SP.gold/2;
+    el.innerHTML=`
+    <div class="ctrl"><h2 style="color:var(--gold)">💰 تحليل الربحية</h2></div>
+    <div class="card" style="margin-bottom:16px">
+        <h3 style="margin-bottom:12px;color:var(--gold)">احسب ربحك المتوقع</h3>
+        <div class="calc-grid">
+            <div><label class="calc-label">صنف الشراء</label><select class="calc-select" id="pType" onchange="calcProfit()">
+                <option value="gold21">ذهب 21K</option><option value="gold24">ذهب 24K</option><option value="silver">فضة 999</option>
+            </select></div>
+            <div><label class="calc-label">كمية الشراء (جرام)</label><input type="number" class="calc-input" id="pWeight" value="10" min="0" step="0.1" oninput="calcProfit()"></div>
+            <div><label class="calc-label">سعر الشراء (ج.م للجرام)</label><input type="number" class="calc-input" id="pBuyPrice" placeholder="اتركه فارغًا للسعر الحالي" oninput="calcProfit()"></div>
+            <div><label class="calc-label">سعر البيع المتوقع (ج.م للجرام)</label><input type="number" class="calc-input" id="pSellPrice" placeholder="اتركه فارغًا للسعر الحالي" oninput="calcProfit()"></div>
+            <div><label class="calc-label">المدة (يوم)</label><input type="number" class="calc-input" id="pDays" value="30" min="1" oninput="calcProfit()"></div>
+            <div><label class="calc-label">نسبة التغيير المتوقعة (%)</label><input type="number" class="calc-input" id="pChange" value="2" step="0.1" oninput="calcProfit()"></div>
+        </div>
+        <div id="profitResult"></div>
+    </div>
+    <div class="card"><h3 style="margin-bottom:12px;color:var(--gold)">📊 سيناريوهات الربح</h3>
+        <div id="scenarios"></div>
+    </div>`;
+    calcProfit();
+}
+
+function calcProfit(){
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r)return;
+    const type=document.getElementById('pType').value;
+    const w=parseFloat(document.getElementById('pWeight').value)||0;
+    const days=parseInt(document.getElementById('pDays').value)||30;
+    const changePct=parseFloat(document.getElementById('pChange').value)||0;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    let currentSell,currentBuy;
+    if(type==='gold21'){currentSell=r.gold.grE*(1+P.g24/100)*21/24*(1+halfG/100);currentBuy=r.gold.grE*(1+P.g24/100)*21/24*(1-halfG/100);}
+    else if(type==='gold24'){currentSell=r.gold.grE*(1+P.g24/100)*(1+halfG/100);currentBuy=r.gold.grE*(1+P.g24/100)*(1-halfG/100);}
+    else{currentSell=r.silver.grE*(1+P.s999/100)*(1+halfS/100);currentBuy=r.silver.grE*(1+P.s999/100)*(1-halfS/100);}
+    const buyPrice=parseFloat(document.getElementById('pBuyPrice').value)||currentBuy;
+    const futurePrice=parseFloat(document.getElementById('pSellPrice').value)||(currentSell*(1+changePct/100));
+    const totalCost=w*buyPrice;
+    const totalRevenue=w*futurePrice;
+    const profit=totalRevenue-totalCost;
+    const roi=totalCost>0?(profit/totalCost*100):0;
+    const annualROI=days>0?(roi*365/days):0;
+    const pricePerGram=currentSell;
+    const markup=currentSell>0?((currentSell-currentBuy)/currentBuy*100):0;
+    document.getElementById('profitResult').innerHTML=`
+    <div class="calc-result" style="margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:10px">
+            <div style="padding:10px;border:1px solid var(--border);border-radius:8px">
+                <div style="color:var(--txt3);font-size:.72rem">التكلفة</div>
+                <div style="color:var(--txt);font-weight:bold;font-size:1rem">ج.م ${fmt(totalCost,0)}</div>
+            </div>
+            <div style="padding:10px;border:1px solid var(--border);border-radius:8px">
+                <div style="color:var(--txt3);font-size:.72rem">القيمة المتوقعة</div>
+                <div style="color:var(--cyan);font-weight:bold;font-size:1rem">ج.م ${fmt(totalRevenue,0)}</div>
+            </div>
+            <div style="padding:10px;border:1px solid ${profit>=0?'rgba(0,230,118,.3)':'rgba(255,82,82,.3)'};border-radius:8px">
+                <div style="color:var(--txt3);font-size:.72rem">الربح/الخسارة</div>
+                <div style="color:${profit>=0?'var(--green)':'var(--red)'};font-weight:bold;font-size:1rem">${profit>=0?'+':''}ج.م ${fmt(profit,0)}</div>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.8rem;color:var(--txt3)">
+            <div>العائد: <strong style="color:${roi>=0?'var(--green)':'var(--red)'}">${roi>=0?'+':''}${roi.toFixed(2)}%</strong> (${days} يوم)</div>
+            <div>العائد السنوي: <strong style="color:${annualROI>=0?'var(--green)':'var(--red)'}">${annualROI>=0?'+':''}${annualROI.toFixed(1)}%</strong></div>
+            <div>الفرق: <strong style="color:var(--orange)">${markup.toFixed(1)}%</strong> (بيع/شراء)</div>
+            <div>سعر الحالي: <strong style="color:var(--gold)">${fmt(pricePerGram,0)} ج.م/جرام</strong></div>
+        </div>
+    </div>`;
+    const scenarios=[-10,-5,-2,0,2,5,10,15,20];
+    let sh='<table class="cmp-table"><tr><th>التغيير %</th><th>سعر البيع</th><th>القيمة</th><th>الربح/الخسارة</th><th>العائد %</th></tr>';
+    scenarios.forEach(pct=>{
+        const sp=currentSell*(1+pct/100);
+        const rev=w*sp;
+        const pnl=rev-totalCost;
+        const r=(totalCost>0?pnl/totalCost*100:0);
+        const cls=pnl>0?'cmp-up':pnl<-0.01?'cmp-down':'cmp-flat';
+        sh+=`<tr><td class="${cls}">${pct>0?'+':''}${pct}%</td><td>${fmt(sp,0)} ج.م</td><td>${fmt(rev,0)} ج.م</td><td class="${cls}">${pnl>=0?'+':''}${fmt(pnl,0)} ج.م</td><td class="${cls}">${r>=0?'+':''}${r.toFixed(1)}%</td></tr>`;
+    });
+    sh+='</table>';
+    document.getElementById('scenarios').innerHTML=sh;
+}
+
+function renderInvest(el){
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txt3)">⏳ جاري تحميل البيانات...</div>';return;}
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    const g24s=r.gold.grE*(1+P.g24/100)*(1+halfG/100);
+    const g21s=r.gold.grE*(1+P.g24/100)*21/24*(1+halfG/100);
+    const s999s=r.silver.grE*(1+P.s999/100)*(1+halfS/100);
+    el.innerHTML=`
+    <div class="ctrl"><h2 style="color:var(--gold)">🏦 حاسبة الاستثمار</h2></div>
+    <div class="card" style="margin-bottom:16px">
+        <h3 style="margin-bottom:12px;color:var(--gold)">لو عندك مبلغ، تشتري ايه؟</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+            <div style="flex:1;min-width:150px"><label class="calc-label">المبلغ (ج.م)</label><input type="number" class="calc-input" id="invAmount" value="100000" min="0" step="1000" oninput="calcInvest()"></div>
+            <div style="flex:1;min-width:150px"><label class="calc-label">المدة (سنة)</label><input type="number" class="calc-input" id="invYears" value="1" min="0.1" step="0.1" oninput="calcInvest()"></div>
+        </div>
+        <div id="investResult"></div>
+    </div>`;
+    calcInvest();
+}
+
+function calcInvest(){
+    const r=rates(),P=PREMIUMS,SP=SPREAD;if(!r)return;
+    const amount=parseFloat(document.getElementById('invAmount').value)||0;
+    const years=parseFloat(document.getElementById('invYears').value)||1;
+    const halfG=SP.gold/2,halfS=SP.silver/2;
+    const g24s=r.gold.grE*(1+P.g24/100)*(1+halfG/100);
+    const g21s=r.gold.grE*(1+P.g24/100)*21/24*(1+halfG/100);
+    const s999s=r.silver.grE*(1+P.s999/100)*(1+halfS/100);
+    const usd=R.egp;
+    const goldOz=r.gold.oz;
+    const items=[
+        {name:'🥇 ذهب 24K',price:g24s,color:'var(--gold)'},
+        {name:'🥇 ذهب 21K',price:g21s,color:'var(--gold)'},
+        {name:'🥈 فضة 999',price:s999s,color:'var(--silver)'},
+        {name:'💵 دولار ( bills)',price:usd,color:'var(--cyan)'},
+        {name:'📈 اونصة ذهب',price:goldOz*usd,color:'var(--gold2)'}
+    ];
+    let h='<table class="cmp-table"><tr><th>الصنف</th><th>السعر/وحدة</th><th>عدد الوحدات</th><th>الوزن الكلي</th><th>قيمة بعد '+years+' سنة (توقع +15%)</th></tr>';
+    items.forEach(item=>{
+        if(item.price<=0)return;
+        const units=amount/item.price;
+        const futureValue=amount*1.15*years;
+        const weightUnit=item.name.includes('ذهب')||item.name.includes('فضة')?'جرام':item.name.includes('اونصة')?'اونصة':'وحدة';
+        const weight=item.name.includes('ذهب 24K')?units.toFixed(2):item.name.includes('ذهب 21K')?(units*8).toFixed(2):item.name.includes('فضة')?units.toFixed(2):item.name.includes('اونصة')?(units/31.1035).toFixed(2):'-';
+        h+=`<tr><td style="font-weight:bold;color:${item.color}">${item.name}</td><td>${fmt(item.price,0)} ج.م</td><td>${units<1?units.toFixed(4):units.toFixed(2)}</td><td>${weight} ${weightUnit}</td><td style="color:var(--green)">${fmt(futureValue,0)} ج.م</td></tr>`;
+    });
+    h+='</table>';
+    h+=`<div style="margin-top:12px;padding:10px;background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:8px;font-size:.78rem;color:var(--txt3)">
+        💡 ملاحظة: التوقعات مبنية على نمو سنوي تقريبي +15%. الاسعار الحقيقية قد تختلف. لا تعتبر هذا نصيحة مالية.
+    </div>`;
+    document.getElementById('investResult').innerHTML=h;
+}
+
+function renderConverter(el){
+    const r=rates();if(!r){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txt3)">⏳ جاري تحميل البيانات...</div>';return;}
+    const allCurs=[{c:'EGP',n:'جنيه مصري',f:'🇪🇬',rate:1},{c:'USD',n:'دولار امريكي',f:'🇺🇸',rate:r.usd},{c:'EUR',n:'يورو',f:'🇪🇺',rate:r.eur},{c:'GBP',n:'جنيه استرليني',f:'🇬🇧',rate:r.gbp},{c:'SAR',n:'ريال سعودي',f:'🇸🇦',rate:r.sar},{c:'AED',n:'درهم اماراتي',f:'🇦🇪',rate:r.aed},{c:'KWD',n:'دينار كويتي',f:'🇰🇼',rate:r.kwd},{c:'JPY',n:'ين ياباني',f:'🇯🇵',rate:r.jpy},{c:'CNY',n:'يوان صيني',f:'🇨🇳',rate:r.cny},{c:'CHF',n:'فرنك سويسري',f:'🇨🇭',rate:r.chf},{c:'CAD',n:'دولار كندي',f:'🇨🇦',rate:r.cad},{c:'AUD',n:'دولار استرالي',f:'🇦🇺',rate:r.aud}];
+    const opts=allCurs.map(c=>`<option value="${c.c}">${c.f} ${c.n} (${c.c})</option>`).join('');
+    el.innerHTML=`
+    <div class="ctrl"><h2 style="color:var(--cyan)">💱 تحويل عملات فوري</h2></div>
+    <div class="card">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+            <div style="flex:1;min-width:120px"><label class="calc-label">المبلغ</label><input type="number" class="calc-input" id="convAmt" value="1" min="0" step="0.01" oninput="doConvert()"></div>
+            <div style="flex:1;min-width:120px"><label class="calc-label">من</label><select class="calc-select" id="convFrom" onchange="doConvert()">${opts}</select></div>
+            <div style="flex:1;min-width:120px"><label class="calc-label">الي</label><select class="calc-select" id="convTo" onchange="doConvert()">${opts}</select></div>
+        </div>
+        <div id="convResult"></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3 style="margin-bottom:12px;color:var(--cyan)">📊 جدول سريع</h3>
+        <div id="convTable"></div>
+    </div>`;
+    document.getElementById('convFrom').value='USD';
+    document.getElementById('convTo').value='EGP';
+    doConvert();
+}
+
+function doConvert(){
+    const r=rates();if(!r)return;
+    const allCurs={EGP:1,USD:r.usd,EUR:r.eur,GBP:r.gbp,SAR:r.sar,AED:r.aed,KWD:r.kwd,JPY:r.jpy,CNY:r.cny,CHF:r.chf,CAD:r.cad,AUD:r.aud};
+    const amt=parseFloat(document.getElementById('convAmt').value)||0;
+    const from=document.getElementById('convFrom').value;
+    const to=document.getElementById('convTo').value;
+    const fromRate=allCurs[from]||1;
+    const toRate=allCurs[to]||1;
+    const inUSD=amt/fromRate;
+    const result=inUSD*toRate;
+    document.getElementById('convResult').innerHTML=`
+    <div class="calc-result"><div style="font-size:.8rem;color:var(--txt3);margin-bottom:6px">${fmt(amt)} ${from} =</div>
+    <div class="big" style="color:var(--cyan)">${fmt(result)} ${to}</div>
+    <div style="margin-top:6px;font-size:.75rem;color:var(--txt4)">1 ${from} = ${fmt(toRate/fromRate,4)} ${to}</div></div>`;
+    let th='<tr><th>من</th><th>الي</th><th>السعر</th></tr>';
+    const quick=[['USD','EGP'],['EUR','EGP'],['GBP','EGP'],['USD','EUR'],['USD','SAR'],['EGP','USD']];
+    quick.forEach(([f,t])=>{
+        const fr=allCurs[f]||1,tr=allCurs[t]||1;
+        th+=`<tr><td>${f}</td><td>${t}</td><td style="color:var(--cyan);font-weight:bold">${fmt(tr/fr,4)}</td></tr>`;
+    });
+    document.getElementById('convTable').innerHTML=`<table class="cmp-table">${th}</table>`;
+}
+
+function renderCalendar(el){
+    const events=[
+        {date:'2026-07-30',title:'قرار الفيدرالي الأمريكي',impact:'high',desc:'قرار أسعار الفائدة الأمريكي وبياناتPowell Press Conference',icon:'🏦'},
+        {date:'2026-08-01',title:'مؤشر PMI الصناعي - الصين',impact:'high',desc:'مؤشر مديري المشتريات الصناعي - يؤثر على سوق المعادن',icon:'🏭'},
+        {date:'2026-08-08',title:'بيانات التضخم الأمريكي - CPI',impact:'high',desc:'مؤشر أسعار المستهلك - تأثير مباشر على الذهب والدولار',icon:'📈'},
+        {date:'2026-08-15',title:'بيانات التوظف الأمريكي',impact:'medium',desc:'NFP وبيانات سوق العمل - يؤثر على قرارات الفيدرالي',icon:'👷'},
+        {date:'2026-08-20',title:'بيانات GDP الصيني',impact:'high',desc:'ناتج محلي إجمالي الصين - أكبر مستهلك للذهب',icon:'🇨🇳'},
+        {date:'2026-08-22',title:'جروز سيدني - Jackson Hole',impact:'high',desc:'مؤتمر البنوك المركزية العالمي - توقعات حول السياسات النقدية',icon:'🌍'},
+        {date:'2026-09-03',title:'بيانات PMI الأوروبي',impact:'medium',desc:'مؤشر مديري المشتريات في يورو زون',icon:'🇪🇺'},
+        {date:'2026-09-10',title:'بيانات التضخم الأمريكي - CPI',impact:'high',desc:'تقرير أسعار المستهلك الشهري',icon:'📊'},
+        {date:'2026-09-17',title:'قرار الفيدرالي الأمريكي',impact:'high',desc:'قرار أسعار الفائدة - Q3 2026',icon:'🏦'},
+        {date:'2026-09-25',title:'بيانات GDP أمريكي Q3',impact:'high',desc:'الناتج المحلي الإجمالي - النهاية المعدلة',icon:'🇺🇸'},
+        {date:'2026-10-05',title:'بيانات التوظف NFP',impact:'medium',desc:'التوظف غير الزراعي الأمريكي',icon:'👷'},
+        {date:'2026-10-15',title:'بيانات التضخم - CPI',impact:'high',desc:'مؤشر أسعار المستهلك - أكتوبر',icon:'📈'},
+        {date:'2026-11-05',title:'قرار الفيدرالي الأمريكي',impact:'high',desc:'قرار أسعار الفائدة - نوفمبر',icon:'🏦'},
+        {date:'2026-12-17',title:'قرار الفيدرالي الأمريكي',impact:'high',desc:'آخر قرار في 2026 + ملخص التوقعات',icon:'🏦'}
+    ];
+    const today=new Date().toISOString().split('T')[0];
+    let upcoming=events.filter(e=>e.date>=today);
+    let past=events.filter(e=>e.date<today).reverse();
+    let h='<div class="ctrl"><h2 style="color:var(--cyan)">🗓️ تقويم الأحداث الاقتصادية</h2></div>';
+    h+='<div class="card"><h3 style="color:var(--green);margin-bottom:12px">📅 أحداث قادمة</h3>';
+    if(upcoming.length===0){h+='<div style="text-align:center;padding:20px;color:var(--txt4)">لا توجد أحداث قادمة</div>';}
+    else{
+        upcoming.forEach(e=>{
+            const cls=e.impact==='high'?'ih':'im';
+            const label=e.impact==='high'?'تأثير عالي':'تأثير متوسط';
+            const daysUntil=Math.ceil((new Date(e.date)-new Date())/86400000);
+            h+=`<div class="pcard"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+                <div><span style="font-size:1.2rem;margin-left:6px">${e.icon}</span><strong>${e.title}</strong></div>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <span class="${cls}" style="font-size:.65rem">${label}</span>
+                    <span style="color:var(--txt4);font-size:.75rem">${e.date}</span>
+                    <span style="color:var(--gold);font-size:.72rem;font-weight:bold">${daysUntil<=0?'اليوم':daysUntil+' يوم'}</span>
+                </div>
+            </div><div style="color:var(--txt3);font-size:.8rem;margin-top:6px">${e.desc}</div></div>`;
+        });
+    }
+    h+='</div>';
+    if(past.length>0){
+        h+='<div class="card" style="margin-top:12px"><h3 style="color:var(--txt4);margin-bottom:12px">📜 أحداث سابقة</h3>';
+        past.slice(0,5).forEach(e=>{
+            h+=`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem;color:var(--txt4)">
+                <span style="margin-left:6px">${e.icon}</span>${e.title} <span style="color:var(--txt4)">(${e.date})</span>
+        <div class="settings-group">
+            <h3>🔄 تحديث تلقائي</h3>
+            <div class="settings-row"><label>فترة التحديث</label><select class="settings-input" id="refreshInterval" onchange="updateRefresh(this.value)" style="width:100px">
+                <option value="60000">1 دقيقة</option>
+                <option value="120000">2 دقيقة</option>
+                <option value="300000" selected>5 دقائق</option>
+                <option value="600000">10 دقائق</option>
+                <option value="900000">15 دقيقة</option>
+            </select></div>
+            <div class="settings-hint">كم مرة تتحدث البيانات تلقائيًا</div>
+            <div class="settings-row"><label>صوت التنبيهات</label><select class="settings-input" id="soundSetting" onchange="updateSoundSetting(this.value)" style="width:100px">
+                <option value="true">مفعّل</option><option value="false">معطّل</option>
+            </select></div>
+        </div>
+    </div>`;
+        });
+        h+='</div>';
+    }
+    el.innerHTML=h;
+}
+
+function exportPDF(){
+    if(!R)return;
+    const r=rates(),P=PREMIUMS,SP=SPREAD;const halfG=SP.gold/2,halfS=SP.silver/2;
+    const e24s=r.gold.grE*(1+P.g24/100)*(1+halfG/100),e24b=r.gold.grE*(1+P.g24/100)*(1-halfG/100);
+    const e21s=e24s*21/24,e21b=e24b*21/24;
+    const s999s=r.silver.grE*(1+P.s999/100)*(1+halfS/100),s999b=r.silver.grE*(1+P.s999/100)*(1-halfS/100);
+    let egyptHtml='';
+    if(EGYPT&&EGYPT.g21){
+        egyptHtml=`<h3 style="margin-top:20px;color:#b8860b">اسعار الصاغة الحقيقية (${EGYPT.date})</h3>
+        <table style="width:100%;border-collapse:collapse;margin:10px 0"><tr><th style="border:1px solid #ccc;padding:6px;text-align:center">الصنف</th><th style="border:1px solid #ccc;padding:6px;text-align:center">بيع</th><th style="border:1px solid #ccc;padding:6px;text-align:center">شراء</th></tr>
+        ${EGYPT.g24?`<tr><td style="border:1px solid #ccc;padding:6px;text-align:center">24K</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:green">${fmt(EGYPT.g24.sell,0)}</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:red">${fmt(EGYPT.g24.buy,0)}</td></tr>`:''}
+        ${EGYPT.g21?`<tr><td style="border:1px solid #ccc;padding:6px;text-align:center">21K</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:green">${fmt(EGYPT.g21.sell,0)}</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:red">${fmt(EGYPT.g21.buy,0)}</td></tr>`:''}
+        ${EGYPT.pound?`<tr><td style="border:1px solid #ccc;padding:6px;text-align:center">جنيه ذهب</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:green">${fmt(EGYPT.pound.sell,0)}</td><td style="border:1px solid #ccc;padding:6px;text-align:center;color:red">${fmt(EGYPT.pound.buy,0)}</td></tr>`:''}
+        </table>`;
+    }
+    const content=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><style>
+        body{font-family:Arial,sans-serif;padding:30px;color:#333;line-height:1.8}
+        h1{color:#b8860b;text-align:center;border-bottom:3px solid #b8860b;padding-bottom:10px}
+        h2{color:#b8860b;margin-top:25px}
+        h3{color:#666}
+        table{width:100%;border-collapse:collapse;margin:10px 0}
+        th{background:#f5f0e0;color:#333;padding:8px;border:1px solid #ccc;text-align:center;font-size:13px}
+        td{padding:8px;border:1px solid #ccc;text-align:center;font-size:13px}
+        .green{color:green;font-weight:bold}.red{color:red;font-weight:bold}
+        .footer{text-align:center;margin-top:30px;color:#999;font-size:11px;border-top:1px solid #ccc;padding-top:10px}
+    </style></head><body>
+    <h1>تقرير اسعار الذهب والفضة والعملات</h1>
+    <p style="text-align:center;color:#666">${new Date().toLocaleDateString('ar-EG')} — ${new Date().toLocaleTimeString('ar-EG')}</p>
+    <h2>🥇 الذهب</h2>
+    <table><tr><th>البند</th><th>بيع</th><th>شراء</th></tr>
+        <tr><td>اونصة عالمي</td><td colspan="2" style="font-weight:bold">$${fmt(r.gold.oz)}</td></tr>
+        <tr><td>جرام 24K</td><td class="green">${fmt(e24s,0)} ج.م</td><td class="red">${fmt(e24b,0)} ج.م</td></tr>
+        <tr><td>جرام 21K</td><td class="green">${fmt(e21s,0)} ج.م</td><td class="red">${fmt(e21b,0)} ج.م</td></tr>
+    </table>
+    <h2>🥈 الفضة</h2>
+    <table><tr><th>البند</th><th>بيع</th><th>شراء</th></tr>
+        <tr><td>اونصة عالمي</td><td colspan="2" style="font-weight:bold">$${fmt(r.silver.oz)}</td></tr>
+        <tr><td>جرام 999</td><td class="green">${fmt(s999s)} ج.م</td><td class="red">${fmt(s999b)} ج.م</td></tr>
+    </table>
+    <h2>💵 العملات</h2>
+    <table><tr><th>العملة</th><th>سعر الصرف</th><th>بالجنيه</th></tr>
+        <tr><td>دولار USD</td><td>${fmt(R.egp,4)}</td><td class="green">${fmt(R.egp)} ج.م</td></tr>
+        <tr><td>يورو EUR</td><td>${fmt(R.eur,4)}</td><td class="green">${fmt(R.egp/R.eur)} ج.م</td></tr>
+        <tr><td>جنيه استرليني GBP</td><td>${fmt(R.gbp,4)}</td><td class="green">${fmt(R.egp/R.gbp)} ج.م</td></tr>
+    </table>
+    ${egyptHtml}
+    <div class="footer">تم اعداد هذا التقرير بواسطة تطبيق مقارنة الاسعار — ${window.location.href}</div>
+    </body></html>`;
+    const w=window.open('','_blank');
+    w.document.write(content);w.document.close();
+    setTimeout(()=>{w.print();},500);
+}
+
 function renderAlerts(el){
     const alerts=getAlerts();
     el.innerHTML=`
@@ -894,18 +1260,26 @@ function renderNews(el){
         }
         allItems.push(...items);
     }).catch(()=>{}))).then(()=>{
-        if(allItems.length===0){el.innerHTML=renderFallbackNews();return;}
-        let h='<div class="ctrl"><h2 style="color:var(--cyan)">📰 اخبار السوق</h2></div>';
+        if(allItems.length===0){el.innerHTML=renderNewsFilters()+renderFallbackNews();return;}
+        let h=renderNewsFilters()+'<div class="ctrl"><h2 style="color:var(--cyan)">📰 اخبار السوق</h2></div>';
         allItems.forEach(n=>{
             const srcColors={reuters:'var(--red)',investing:'var(--green)'};
-            h+=`<div class="card" style="margin-bottom:10px"><div class="ni">
+            h+=`<div class="card news-item" data-src="${n.source}" style="margin-bottom:10px"><div class="ni">
                 <div class="nt"><span style="color:${srcColors[n.source]||'var(--txt3)'};font-weight:bold">${n.source.toUpperCase()}</span> • ${n.date||''}</div>
                 <div style="font-weight:bold;margin:4px 0;font-size:.92rem">${n.title}</div>
                 <div style="color:var(--txt3);font-size:.82rem;margin-top:4px">${n.desc}</div>
             </div></div>`;
         });
         el.innerHTML=h;
-    }).catch(()=>{el.innerHTML=renderFallbackNews();});
+    }).catch(()=>{el.innerHTML=renderNewsFilters()+renderFallbackNews();});
+}
+
+function renderNewsFilters(){
+    return`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="top-btn news-filter-btn on" data-f="all" onclick="setNewsFilter('all')">الكل</button>
+        <button class="top-btn news-filter-btn" data-f="reuters" onclick="setNewsFilter('reuters')" style="color:var(--red)">Reuters</button>
+        <button class="top-btn news-filter-btn" data-f="investing" onclick="setNewsFilter('investing')" style="color:var(--green)">Investing</button>
+    </div>`;
 }
 
 function renderSettings(el){
@@ -957,6 +1331,31 @@ function resetSettings(){
     showToast('تمت الاعادة ✅');
 }
 
+function updateRefresh(val){
+    localStorage.setItem('refreshInterval',val);
+    REFRESH_MS=parseInt(val);
+    startCountdown();
+    showToast('تم تحديث فترة التحديث ✅');
+}
+function updateSoundSetting(val){
+    soundEnabled=val==='true';
+    localStorage.setItem('soundEnabled',soundEnabled);
+    const btn=document.getElementById('soundBtn');
+    btn.textContent=soundEnabled?'🔊 صوت مفعّل':'🔇 صوت التنبيهات';
+    btn.classList.toggle('on',soundEnabled);
+    showToast('تم تحديث إعداد الصوت ✅');
+}
+
+let NEWS_FILTER='all';
+function setNewsFilter(f){
+    NEWS_FILTER=f;
+    document.querySelectorAll('.news-filter-btn').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+    document.querySelectorAll('.news-item').forEach(el=>{
+        if(f==='all')el.style.display='';
+        else el.style.display=el.dataset.src===f?'':'none';
+    });
+}
+
 function renderFallbackNews(){
     const gp=R?fmt(1/R.xau):'---',sp=R?fmt(1/R.xag):'---',us=R?fmt(R.egp):'---';
     const ns=[
@@ -1006,7 +1405,7 @@ function cOpts(pfx=''){
 
 if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 
-const REFRESH_MS=300000;
+let REFRESH_MS=parseInt(localStorage.getItem('refreshInterval'))||300000;
 let countdownLeft=REFRESH_MS,countdownInterval=null;
 function startCountdown(){
     countdownLeft=REFRESH_MS;
