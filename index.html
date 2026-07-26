@@ -238,7 +238,8 @@ if(localStorage.getItem('theme')==='light')document.getElementById('themeBtn').t
 async function fetchData(){
     document.getElementById('dot').className='dot ld';
     try{
-        const r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+        const url='https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json?_='+(Date.now());
+        const r=await fetch(url,{cache:'no-store'});
         const data=await r.json();
         if(!data||!data.usd)throw new Error('Invalid data');
         R=data.usd;
@@ -942,10 +943,11 @@ function startCountdown(){
     if(countdownInterval)clearInterval(countdownInterval);
     countdownInterval=setInterval(()=>{
         countdownLeft-=1000;
-        if(countdownLeft<=0){countdownLeft=0;fetchData();countdownLeft=REFRESH_MS;}
+        if(countdownLeft<=0){countdownLeft=REFRESH_MS;fetchData();}
         const m=Math.floor(countdownLeft/60000);
         const s=Math.floor((countdownLeft%60000)/1000);
-        document.getElementById('countdown').textContent='⏱ التحديث التالي: '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        const el=document.getElementById('countdown');
+        if(el)el.textContent='⏱ التحديث التالي: '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
     },1000);
 }
 
