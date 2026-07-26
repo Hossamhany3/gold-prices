@@ -6,7 +6,7 @@ self.addEventListener('install',e=>{
 });
 
 self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))).then(()=>self.clients.claim());
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
 
 self.addEventListener('fetch',e=>{
@@ -22,5 +22,5 @@ self.addEventListener('fetch',e=>{
     const clone=resp.clone();
     caches.open(CACHE).then(c=>c.put(e.request,clone));
     return resp;
-  })));
+  }).catch(()=>new Response('<!DOCTYPE html><html dir="rtl" lang="ar"><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background:#0a0a1a;color:#ffd700;text-align:center"><div><h1>⚠️ بدون اتصال</h1><p style="color:#999">تحقق من اتصالك بالانترنت وحاول مرة اخرى</p></div></body></html>',{headers:{'Content-Type':'text/html; charset=utf-8'}}))));
 });
