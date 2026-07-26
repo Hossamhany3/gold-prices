@@ -40,8 +40,7 @@
         .top-btn:hover{background:var(--gold);color:#000;border-color:var(--gold)}
         .top-btn.on{background:var(--gold);color:#000;border-color:var(--gold)}
         .ctn{max-width:1400px;margin:0 auto;padding:14px}
-        .tabs{display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;justify-content:flex-start;padding-bottom:4px}
-        .tabs::-webkit-scrollbar{height:3px}.tabs::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
+        .tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
         .tab{padding:7px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:.25s;font-size:.82rem;color:var(--txt3);font-family:inherit;white-space:nowrap}
         .tab:hover{background:var(--gold3);color:var(--gold);border-color:rgba(255,215,0,.2)}
         .tab.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;font-weight:bold;border-color:var(--gold);box-shadow:0 2px 12px rgba(255,215,0,.25)}
@@ -157,7 +156,7 @@
         .settings-default{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.3);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.78rem;font-weight:600;transition:.2s;font-family:inherit}
         .settings-default:hover{background:var(--gold);color:#000}
         @media(max-width:768px){.header h1{font-size:1.2rem}.grid{grid-template-columns:1fr}.cw{height:220px}.calc-grid{grid-template-columns:1fr}.cmp-table{font-size:.72rem}.cmp-table th,.cmp-table td{padding:5px 3px}.settings-grid{grid-template-columns:1fr!important}.sc{grid-template-columns:repeat(2,1fr)!important}.tabs{gap:4px}.tab{padding:6px 10px;font-size:.75rem}.topbar{gap:5px}.top-btn{padding:4px 8px;font-size:.72rem}}
-        @media(max-width:480px){.sc{grid-template-columns:1fr 1fr!important}.sv{font-size:1.1rem}.header h1{font-size:1.05rem}.tabs{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;padding-bottom:4px}.tab{font-size:.72rem;padding:5px 8px}}
+        @media(max-width:480px){.sc{grid-template-columns:1fr 1fr!important}.sv{font-size:1.1rem}.header h1{font-size:1.05rem}.tabs{gap:3px;justify-content:center}.tabs .tl{display:none}.tab{padding:6px 8px;font-size:1rem}}
         #splash{position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a0a1a,#141432,#1a1a3e);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:opacity .5s}
         #splash.hide{opacity:0;pointer-events:none}
         #splash h1{font-size:2rem;background:linear-gradient(90deg,#ffd700,#ff8c00,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
@@ -260,7 +259,7 @@ const tabsEl=document.getElementById('tabs');
 TABS.forEach((t,i)=>{
     const d=document.createElement('div');
     d.className='tab'+(i===0?' on':'');
-    d.textContent=t.icon+' '+t.label;
+    d.innerHTML=t.icon+' <span class="tl">'+t.label+'</span>';
     d.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));d.classList.add('on');activeTab=t.id;render()};
     tabsEl.appendChild(d);
 });
