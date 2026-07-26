@@ -40,7 +40,8 @@
         .top-btn:hover{background:var(--gold);color:#000;border-color:var(--gold)}
         .top-btn.on{background:var(--gold);color:#000;border-color:var(--gold)}
         .ctn{max-width:1400px;margin:0 auto;padding:14px}
-        .tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
+        .tabs{display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;justify-content:flex-start;padding-bottom:4px}
+        .tabs::-webkit-scrollbar{height:3px}.tabs::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
         .tab{padding:7px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:.25s;font-size:.82rem;color:var(--txt3);font-family:inherit;white-space:nowrap}
         .tab:hover{background:var(--gold3);color:var(--gold);border-color:rgba(255,215,0,.2)}
         .tab.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;font-weight:bold;border-color:var(--gold);box-shadow:0 2px 12px rgba(255,215,0,.25)}
