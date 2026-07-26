@@ -128,6 +128,10 @@
         .cmp-down{color:var(--red);background:rgba(255,82,82,.08);padding:2px 6px;border-radius:4px;font-weight:600}
         .cmp-flat{color:var(--txt4);background:rgba(128,128,128,.05);padding:2px 6px;border-radius:4px}
         .cmp-loading{text-align:center;padding:30px;color:var(--txt3)}
+        .cmp-filter{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);cursor:pointer;user-select:none;transition:all .2s}
+        .cmp-filter:hover{border-color:var(--gold);background:rgba(255,215,0,.05)}
+        .cmp-filter input:checked+span{font-weight:600}
+        .cmp-filter input{accent-color:var(--gold);width:14px;height:14px}
         .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
         .settings-group{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
         .settings-group h3{color:var(--gold);margin-bottom:12px;font-size:.9rem}
@@ -208,7 +212,7 @@ const CURS={
     CHF:{n:'الفرنك السويسري',f:'🇨🇭',bp:SETTINGS.curs.CHF}
 };
 
-let R=null,HIST={},CH={},activeTab='gold',alertId=0,EGYPT=null;
+let R=null,HIST={},CH={},activeTab='gold',alertId=0,EGYPT=null,CMP_DAYS=[],CMP_FIRST=null,CMP_LAST=null;
 
 function fmt(n,d=2){return n!=null&&!isNaN(n)?n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'---'}
 function ci(v){return v>0?'▲':v<0?'▼':'—'}
@@ -624,6 +628,8 @@ async function compareDates(){
             return`<td class="${cls}">${arrow} ${Math.abs(v).toFixed(2)}%</td>`;
         }
 
+        CMP_DAYS=days;CMP_FIRST=first;CMP_LAST=last;
+
         let summary=`<div class="cc"><h3>📊 ملخص المقارنة: ${d1} ← ${d2} (${days.length} يوم)</h3>
         <div style="overflow-x:auto"><table class="cmp-table">
         <tr><th>البند</th><th>السعر (${d1})</th><th>السعر (${d2})</th><th>التغيير الكلي</th></tr>`;
@@ -645,30 +651,18 @@ async function compareDates(){
         });
         summary+=`</table></div></div>`;
 
-        let daily=`<div class="cc"><h3>📅 تفاصيل يوم بيوم</h3>
-        <div style="overflow-x:auto"><table class="cmp-table">
-        <tr><th>التاريخ</th><th>ذهب $/oz</th><th>24K بيع</th><th>24K شراء</th><th>21K بيع</th><th>21K شراء</th><th>فضة بيع</th><th>فضة شراء</th><th>دولار</th></tr>`;
-        days.forEach((d,i)=>{
-            const prev=i>0?days[i-1]:null;
-            const dayChg=prev?pct(prev.goldOz,d.goldOz):0;
-            const cls=dayChg>0.01?'cmp-up':dayChg<-0.01?'cmp-down':'cmp-flat';
-            const arrow=dayChg>0.01?'▲':dayChg<-0.01?'▼':'';
-            daily+=`<tr>
-                <td style="font-weight:bold">${d.date}</td>
-                <td>${fmt(d.goldOz)} <span class="${cls}" style="font-size:.7rem">${arrow}${prev?' '+Math.abs(dayChg).toFixed(2)+'%':''}</span></td>
-                <td style="color:var(--green)">${fmt(d.gold24s,0)}</td>
-                <td style="color:var(--red)">${fmt(d.gold24b,0)}</td>
-                <td style="color:var(--green)">${fmt(d.gold21s,0)}</td>
-                <td style="color:var(--red)">${fmt(d.gold21b,0)}</td>
-                <td style="color:var(--green)">${fmt(d.silver999s,0)}</td>
-                <td style="color:var(--red)">${fmt(d.silver999b,0)}</td>
-                <td>${fmt(d.usd)}</td>
-            </tr>`;
-        });
-        daily+=`</table></div></div>`;
+        const filterBar=`<div class="cc" style="padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:.82rem;color:var(--txt3);font-weight:600">اختر الاصناف:</span>
+            <label class="cmp-filter"><input type="checkbox" checked onchange="renderDailyTable()" data-col="goldOz"><span style="color:var(--gold)">ذهب $/oz</span></label>
+            <label class="cmp-filter"><input type="checkbox" checked onchange="renderDailyTable()" data-col="gold24"><span style="color:var(--gold)">24K</span></label>
+            <label class="cmp-filter"><input type="checkbox" checked onchange="renderDailyTable()" data-col="gold21"><span style="color:var(--gold)">21K</span></label>
+            <label class="cmp-filter"><input type="checkbox" checked onchange="renderDailyTable()" data-col="silver"><span style="color:var(--silver)">فضة</span></label>
+            <label class="cmp-filter"><input type="checkbox" checked onchange="renderDailyTable()" data-col="usd"><span style="color:var(--cyan)">دولار</span></label>
+        </div></div>`;
 
-        let chartDiv=`<div class="cc"><h3>📈 رسم بياني - تطور الاسعار</h3><div class="cw"><canvas id="dailyC"></canvas></div></div>`;
-        res.innerHTML=summary+daily+chartDiv;
+        res.innerHTML=summary+filterBar+'<div id="dailyWrap"></div><div class="cc" style="padding:16px"><h3>📈 رسم بياني - تطور الاسعار</h3><div class="cw"><canvas id="dailyC"></canvas></div></div>';
+        renderDailyTable();
 
         setTimeout(()=>{
             if(CH.daily)CH.daily.destroy();
@@ -682,6 +676,35 @@ async function compareDates(){
     }catch(e){
         res.innerHTML='<div class="cmp-loading">❌ خطأ: '+e.message+'</div>';
     }
+}
+
+function renderDailyTable(){
+    if(!CMP_DAYS.length||!document.getElementById('dailyWrap'))return;
+    const wrap=document.getElementById('dailyWrap');
+    const cols={};
+    document.querySelectorAll('.cmp-filter input').forEach(cb=>{cols[cb.dataset.col]=cb.checked;});
+    let ths='<th>التاريخ</th>';
+    if(cols.goldOz)ths+='<th>ذهب $/oz</th>';
+    if(cols.gold24)ths+='<th>24K بيع</th><th>24K شراء</th>';
+    if(cols.gold21)ths+='<th>21K بيع</th><th>21K شراء</th>';
+    if(cols.silver)ths+='<th>فضة بيع</th><th>فضة شراء</th>';
+    if(cols.usd)ths+='<th>دولار</th>';
+    let html=`<div class="cc"><h3>📅 تفاصيل يوم بيوم</h3><div style="overflow-x:auto"><table class="cmp-table"><tr>${ths}</tr>`;
+    CMP_DAYS.forEach((d,i)=>{
+        const prev=i>0?CMP_DAYS[i-1]:null;
+        const dayChg=prev?pct(prev.goldOz,d.goldOz):0;
+        const cls=dayChg>0.01?'cmp-up':dayChg<-0.01?'cmp-down':'cmp-flat';
+        const arrow=dayChg>0.01?'▲':dayChg<-0.01?'▼':'';
+        let tds=`<td style="font-weight:bold">${d.date}</td>`;
+        if(cols.goldOz)tds+=`<td>${fmt(d.goldOz)} <span class="${cls}" style="font-size:.7rem">${arrow}${prev?' '+Math.abs(dayChg).toFixed(2)+'%':''}</span></td>`;
+        if(cols.gold24)tds+=`<td style="color:var(--green)">${fmt(d.gold24s,0)}</td><td style="color:var(--red)">${fmt(d.gold24b,0)}</td>`;
+        if(cols.gold21)tds+=`<td style="color:var(--green)">${fmt(d.gold21s,0)}</td><td style="color:var(--red)">${fmt(d.gold21b,0)}</td>`;
+        if(cols.silver)tds+=`<td style="color:var(--green)">${fmt(d.silver999s,0)}</td><td style="color:var(--red)">${fmt(d.silver999b,0)}</td>`;
+        if(cols.usd)tds+=`<td>${fmt(d.usd)}</td>`;
+        html+=`<tr>${tds}</tr>`;
+    });
+    html+=`</table></div></div>`;
+    wrap.innerHTML=html;
 }
 
 function renderCalculator(el){
