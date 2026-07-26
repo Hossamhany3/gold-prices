@@ -153,6 +153,7 @@
     <div class="status">
         <span><span class="dot ld" id="dot"></span> <span id="upd">جاري التحميل...</span></span>
         <span id="apiSt"></span>
+        <span id="egyptSt"></span>
         <span class="countdown" id="countdown"></span>
     </div>
 </div>
@@ -209,7 +210,7 @@ const CURS={
     CHF:{n:'الفرنك السويسري',f:'🇨🇭',bp:SETTINGS.curs.CHF}
 };
 
-let R=null,HIST={},CH={},activeTab='gold',alertId=0;
+let R=null,HIST={},CH={},activeTab='gold',alertId=0,EGYPT=null;
 
 function fmt(n,d=2){return n!=null&&!isNaN(n)?n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'---'}
 function ci(v){return v>0?'▲':v<0?'▼':'—'}
@@ -253,6 +254,43 @@ async function fetchData(){
         document.getElementById('dot').className='dot err';
         document.getElementById('apiSt').textContent='خطأ في الاتصال';
         document.getElementById('errBox').innerHTML='<div class="err">فشل الاتصال: '+e.message+'<br><br><button class="rbtn" onclick="fetchData()"> إعادة المحاولة</button></div>';
+    }
+}
+
+async function fetchEgyptPrices(){
+    try{
+        const proxy='https://api.allorigins.win/raw?url=';
+        const url=proxy+encodeURIComponent('https://gold-price-today.com/egypt/');
+        const r=await fetch(url,{cache:'no-store'});
+        const html=await r.text();
+        const prices={};
+        const rows=[
+            {key:'g24',label:'عيار 24'},
+            {key:'g22',label:'عيار 22'},
+            {key:'g21',label:'عيار 21'},
+            {key:'g18',label:'عيار 18'},
+            {key:'g14',label:'عيار 14'},
+            {key:'pound',label:'جنيه الذهب'},
+            {key:'ozEgp',label:'الأونصة بالجنيه'},
+            {key:'ozUsd',label:'الأونصة بالدولار'},
+            {key:'usd',label:'دولار الصاغة'}
+        ];
+        for(const row of rows){
+            const regex=new RegExp(row.label+'[^<]*</td>\\s*<td[^>]*>([\\d,.]+)</td>\\s*<td[^>]*>([\\d,.]+)</td>','i');
+            const m=html.match(regex);
+            if(m){
+                prices[row.key]={sell:parseFloat(m[1].replace(/,/g,'')),buy:parseFloat(m[2].replace(/,/g,''))};
+            }
+        }
+        if(Object.keys(prices).length>0){
+            EGYPT=prices;
+            EGYPT.time=new Date().toLocaleTimeString('ar-EG');
+            const st=document.getElementById('egyptSt');
+            if(st)st.innerHTML='<span class="atag" style="background:rgba(0,188,212,.15);color:var(--cyan);border-color:var(--cyan)">🇪🇬 الصاغة</span>';
+        }
+    }catch(e){
+        const st=document.getElementById('egyptSt');
+        if(st)st.innerHTML='<span class="atag" style="background:rgba(255,170,0,.15);color:var(--orange);border-color:var(--orange)">🇪🇬 الصاغة: غير متاح</span>';
     }
 }
 
@@ -312,8 +350,46 @@ function renderGold(el){
     const e18s=e24s*18/24,e18b=e24b*18/24;
     const eOzs=r.gold.ozE*(1+P.g24/100)*(1+halfSP/100),eOzb=r.gold.ozE*(1+P.g24/100)*(1-halfSP/100);
     const ePounds=e21s*8+80,ePoundb=e21b*8+80;
+    let egyptSection='';
+    if(EGYPT&&EGYPT.g21){
+        const ep=EGYPT;
+        const egyptRows=[
+            {label:'24 قيرط',sell:ep.g24?.sell,buy:ep.g24?.buy},
+            {label:'22 قيرط',sell:ep.g22?.sell,buy:ep.g22?.buy},
+            {label:'21 قيرط',sell:ep.g21?.sell,buy:ep.g21?.buy},
+            {label:'18 قيرط',sell:ep.g18?.sell,buy:ep.g18?.buy},
+            {label:'14 قيرط',sell:ep.g14?.sell,buy:ep.g14?.buy}
+        ];
+        let egyptHtml=egyptRows.filter(x=>x.sell).map(x=>`
+            <div class="pr" style="border:none"><span class="pl">${x.label}</span><span class="pv" style="color:var(--green)">${fmt(x.sell,0)}</span></div>
+            <div class="pr" style="border:none"><span class="pl">${x.label}</span><span class="pv" style="color:var(--red)">${fmt(x.buy,0)}</span></div>
+        `).join('');
+        if(ep.pound){
+            egyptHtml+=`
+            <div class="pr" style="border:none"><span class="pl">جنيه ذهب بيع</span><span class="pv" style="color:var(--green)">${fmt(ep.pound.sell,0)}</span></div>
+            <div class="pr" style="border:none"><span class="pl">جنيه ذهب شراء</span><span class="pv" style="color:var(--red)">${fmt(ep.pound.buy,0)}</span></div>`;
+        }
+        if(ep.usd){
+            egyptHtml+=`
+            <div class="pr" style="border:none"><span class="pl">دولار الصاغة بيع</span><span class="pv" style="color:var(--green)">${fmt(ep.usd.sell)}</span></div>
+            <div class="pr" style="border:none"><span class="pl">دولار الصاغة شراء</span><span class="pv" style="color:var(--red)">${fmt(ep.usd.buy)}</span></div>`;
+        }
+        const e21Diff=ep.g21?(ep.g21.sell-e21s).toFixed(0):0;
+        egyptSection=`
+        <div class="card" style="border-color:var(--green)"><div class="ch"><span class="ct2">🇪🇬 اسعار الصاغة الحقيقية</span><span class="badge" style="background:var(--green);color:#000">مباشر من السوق</span></div>
+            <div style="font-size:.72rem;color:var(--txt4);margin-bottom:8px">آخر تحديث: ${EGYPT.time||'—'}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+                <div style="color:var(--green);font-weight:bold;font-size:.8rem">🟢 البيع</div>
+                <div style="color:var(--red);font-weight:bold;font-size:.8rem">🔴 الشراء</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${egyptHtml}</div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <div class="pr"><span class="pl">فرق عن الاسعار المحسوبة (21K)</span><span class="pv ${parseFloat(e21Diff)>0?'cu':'cd'}">${parseFloat(e21Diff)>0?'+':''}ج.م ${e21Diff}</span></div>
+            </div>
+        </div>`;
+    }
     el.innerHTML=`
-    <div class="ctrl"><h2 style="color:var(--gold)">مقارنة اسعار الذهب</h2><button class="rbtn" onclick="fetchData()">🔄 تحديث</button></div>
+    <div class="ctrl"><h2 style="color:var(--gold)">مقارنة اسعار الذهب</h2><button class="rbtn" onclick="fetchData();fetchEgyptPrices()">🔄 تحديث</button></div>
     <div class="sc">
         <div class="scd"><div class="sl">سعر الاونصة (عالمي)</div><div class="sv pint">$${fmt(r.gold.oz)}</div><div class="sl">≈ ج.م ${fmt(r.gold.ozE)}</div></div>
         <div class="scd"><div class="sl">الجرام عالمي (EGP)</div><div class="sv pint">ج.م ${fmt(r.gold.grE)}</div></div>
@@ -330,7 +406,7 @@ function renderGold(el){
                 <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px"><span style="color:var(--txt4)">Spread عالمي</span><span style="color:var(--orange)">${SP.gold}%</span></div>
             </div>
         </div>
-        <div class="card"><div class="ch"><span class="ct2">🇪🇬 الاسعار المصرية</span><span class="badge bg">مصر</span></div>
+        <div class="card"><div class="ch"><span class="ct2">🇪🇬 الاسعار المصرية (محسوبة)</span><span class="badge bg">تقدير</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;text-align:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
                 <div style="color:var(--green);font-weight:bold;font-size:.8rem">🟢 سعر البيع</div>
                 <div style="color:var(--red);font-weight:bold;font-size:.8rem">🔴 سعر الشراء</div>
@@ -358,7 +434,7 @@ function renderGold(el){
             <div class="pr"><span class="pl">فرق البيع عن العالمي</span><span class="pv cu">+ج.م ${fmt(e24s-r.gold.grE)}</span></div>
             <div class="pr"><span class="pl">نسبة الذهب/الفضة</span><span class="pv cn">${fmt(r.ratio,1)}:1</span></div>
         </div>
-    </div>`;
+    </div>${egyptSection}`;
 }
 
 function renderSilver(el){
@@ -943,7 +1019,7 @@ function startCountdown(){
     if(countdownInterval)clearInterval(countdownInterval);
     countdownInterval=setInterval(()=>{
         countdownLeft-=1000;
-        if(countdownLeft<=0){countdownLeft=REFRESH_MS;fetchData();}
+        if(countdownLeft<=0){countdownLeft=REFRESH_MS;fetchData();fetchEgyptPrices();}
         const m=Math.floor(countdownLeft/60000);
         const s=Math.floor((countdownLeft%60000)/1000);
         const el=document.getElementById('countdown');
@@ -1014,6 +1090,7 @@ function sharePrice(){
 render();
 fetchData().then(()=>startCountdown());
 fetchHistory();
+fetchEgyptPrices();
 initSoundBtn();
 </script>
 </body>
