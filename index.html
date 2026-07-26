@@ -2,14 +2,27 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>مقارنة اسعار الذهب والفضة والعملات</title>
+    <meta name="description" content="مقارنة اسعار الذهب والفضة والعملات — الصاغة المصرية واسعار الدولار والعملات العالمية">
+    <meta name="theme-color" content="#0a0a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="اسعار الذهب">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="اسعار الذهب">
+    <meta name="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+    if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+    </script>
     <style>
         :root{--bg1:#0a0a1a;--bg2:#141432;--bg3:#1a1a3e;--card:rgba(255,255,255,.05);--card2:rgba(255,255,255,.03);--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.12);--txt:#f0f0f5;--txt2:#c8c8d8;--txt3:#9999b3;--txt4:#6e6e8a;--gold:#ffd700;--gold2:#ff8c00;--gold3:rgba(255,215,0,.08);--silver:#c0c0c0;--cyan:#00bcd4;--green:#00e676;--red:#ff5252;--orange:#ffab00}
         [data-theme="light"]{--bg1:#f5f6fa;--bg2:#eaecf2;--bg3:#e0e3ea;--card:rgba(255,255,255,.85);--card2:rgba(255,255,255,.6);--border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.1);--txt:#1a1a2e;--txt2:#2d2d44;--txt3:#555570;--txt4:#8888a0;--gold:#b8860b;--gold2:#cc7000;--gold3:rgba(184,134,11,.06);--silver:#777;--cyan:#00838f;--green:#00875a;--red:#d32f2f;--orange:#e65100}
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));color:var(--txt);min-height:100vh;transition:background .3s,color .3s;line-height:1.5}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        html{height:100%;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+        body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));color:var(--txt);min-height:100%;min-height:100dvh;transition:background .3s,color .3s;line-height:1.5;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
         .header{text-align:center;padding:18px 16px 14px;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.15) 100%);border-bottom:2px solid var(--gold);backdrop-filter:blur(10px)}
         [data-theme="light"] .header{background:linear-gradient(180deg,rgba(255,255,255,.8) 0%,rgba(255,255,255,.5) 100%);border-bottom-color:var(--gold)}
         .header h1{font-size:1.6rem;background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.5px}
