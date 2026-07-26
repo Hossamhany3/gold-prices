@@ -1,0 +1,19 @@
+{
+  "name": "مقارنة اسعار الذهب والفضة والعملات",
+  "short_name": "اسعار الذهب",
+  "description": "مقارنة اسعار الذهب والفضة والعملات — الصاغة المصرية واسعار الدولار والعملات العالمية",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["finance", "utilities"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
