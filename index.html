@@ -517,7 +517,7 @@ function renderCharts(el){
         CH.cmp=new Chart(document.getElementById('cmpC'),{type:'bar',data:{labels:['اونصة ($)','جرام 24K (ج.م)','جرام 21K (ج.م)'],datasets:[{label:'عالمي',data:[r.gold.oz,r.gold.grE,r.gold.grE*.875],backgroundColor:'rgba(0,188,212,.6)',borderColor:'#00bcd4',borderWidth:1},{label:'مصري',data:[r.gold.oz,e24,e21],backgroundColor:'rgba(255,215,0,.6)',borderColor:'#ffd700',borderWidth:1}]},options:cOpts()});
 
         if(CH.prem)CH.prem.destroy();
-        CH.prem=new Chart(document.getElementById('premC'),{type:'doughnut',data:{labels:['الذهب 24K (2.2%)','الفضة (9.5%)','الدولار (~2.3%)','اليورو (~1.7%)'],datasets:[{data:[2.2,9.5,2.3,1.7],backgroundColor:['#ffd700','#c0c0c0','#00bcd4','#ff8c00'],borderWidth:2,borderColor:'rgba(0,0,0,.3)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'var(--txt)',padding:12}}}}});
+        CH.prem=new Chart(document.getElementById('premC'),{type:'doughnut',data:{labels:[`الذهب 24K (${P.g24}%)`,`الفضة (${P.s999}%)`,`الدولAR (~2.3%)`,`اليورو (~${SETTINGS.curs.EUR}%)`],datasets:[{data:[P.g24,P.s999,2.3,SETTINGS.curs.EUR],backgroundColor:['#ffd700','#c0c0c0','#00bcd4','#ff8c00'],borderWidth:2,borderColor:'rgba(0,0,0,.3)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'var(--txt)',padding:12}}}}});
 
         if(CH.met)CH.met.destroy();
         CH.met=new Chart(document.getElementById('metC'),{type:'bar',data:{labels:['الذهب $/oz','الفضة $/oz','نسبة G/S'],datasets:[{label:'قيم حية',data:[r.gold.oz,r.silver.oz,r.ratio],backgroundColor:['rgba(255,215,0,.6)','rgba(192,192,192,.6)','rgba(255,170,0,.6)'],borderColor:['#ffd700','#c0c0c0','#ffaa00'],borderWidth:1}]},options:cOpts()});
@@ -1082,7 +1082,8 @@ function sharePrice(){
 }
 
 render();
-fetchData().then(()=>startCountdown());
+startCountdown();
+fetchData();
 fetchHistory();
 fetchEgyptPrices();
 initSoundBtn();
